@@ -99,9 +99,16 @@ test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 �
   await shot(page, testInfo, '08-payments')
 
   await page.goto('/#/settings')
-  await expect(page.getByRole('heading', { name: '기본 규칙' })).toBeVisible()
+  await expect(page.getByRole('list', { name: '기본 규칙' })).toBeVisible()
   await expectNoHorizontalOverflow(page)
-  await shot(page, testInfo, '09-settings-full', { fullPage: true })
+  await shot(page, testInfo, '09-settings')
+  await page.getByRole('list', { name: '기본 규칙' }).getByRole('link', { name: /출결·보강/ }).click()
+  await expect(page.getByRole('heading', { name: '출결·보강', level: 1 })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await shot(page, testInfo, '09-settings-attendance')
+  await page.goto('/#/settings/backup')
+  await expect(page.getByRole('heading', { name: '백업과 복원', level: 1 })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
 })
 
 test('창(보강, 납부, 주간 일정의 수업)이 화면 안에 들어오고 넘치지 않음', async ({ page }, testInfo) => {

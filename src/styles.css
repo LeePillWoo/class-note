@@ -2905,6 +2905,49 @@ a.lesson-fee-name {
   background: var(--line-strong);
 }
 
+/* ===== 설정 메뉴 ===== */
+.menu-row {
+  min-height: 4rem;
+}
+
+.menu-row > svg {
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.menu-icon {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--text-2);
+  background: var(--raised);
+  border-radius: var(--radius);
+}
+
+.person-row.active .menu-icon {
+  color: var(--accent);
+  background: var(--surface);
+}
+
+.app-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.25rem;
+}
+
+.app-info-name {
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+}
+
+.saved-note {
+  padding: 0 0.25rem;
+}
+
 /* ===== 빈 화면 ===== */
 .empty {
   display: grid;

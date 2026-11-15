@@ -9,7 +9,10 @@ import { StudentDetailPage } from './pages/lessons/StudentDetail'
 import StudentFormPage from './pages/lessons/StudentFormPage'
 import MakeupsPage from './pages/MakeupsPage'
 import PaymentsPage from './pages/PaymentsPage'
-import SettingsPage from './pages/settings/SettingsPage'
+import BackupPage from './pages/settings/BackupPage'
+import DataPage from './pages/settings/DataPage'
+import { AttendanceSettingsPage, FeeSettingsPage, LessonSettingsPage } from './pages/settings/RulePages'
+import SettingsLayout, { SettingsIndex } from './pages/settings/SettingsLayout'
 import { LessonEditPage } from './pages/lessons/LessonEditPage'
 
 export default function App() {
@@ -29,7 +32,15 @@ export default function App() {
         </Route>
         <Route path="makeups" element={<MakeupsPage />} />
         <Route path="payments" element={<PaymentsPage />} />
-        <Route path="settings" element={<SettingsPage />} />
+        {/* 설정: 메뉴를 누르면 들어가는 화면들. 넓은 화면은 메뉴 + 화면 두 칸 */}
+        <Route path="settings" element={<SettingsLayout />}>
+          <Route index element={<SettingsIndex />} />
+          <Route path="fees" element={<FeeSettingsPage />} />
+          <Route path="lessons" element={<LessonSettingsPage />} />
+          <Route path="attendance" element={<AttendanceSettingsPage />} />
+          <Route path="backup" element={<BackupPage />} />
+          <Route path="data" element={<DataPage />} />
+        </Route>
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

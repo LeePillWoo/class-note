@@ -134,7 +134,7 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
           </div>
           <div className="field">
             <span className="field-label">요일과 시간</span>
-            <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart="16:00" defaultEnd={endTimeAfter('16:00', settings.lessonMinutes)} />
+            <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} defaultEnd={endTimeAfter(settings.lessonStart, settings.lessonMinutes)} />
             {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
           </div>
           {scheduleChanged && (

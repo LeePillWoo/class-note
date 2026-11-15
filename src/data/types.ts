@@ -225,6 +225,8 @@ export interface AppSettings extends BaseRecord {
   method: PaymentMethod
   /** 새 수업의 기본 수업 시간(분) */
   lessonMinutes: number
+  /** 새 수업의 기본 시작 시각 'HH:MM' */
+  lessonStart: string
 }
 
 /** 저장하는 데이터 종류입니다. 새 종류는 여기에 추가합니다. */

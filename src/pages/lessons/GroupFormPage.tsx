@@ -158,7 +158,7 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
 
         <div className="card form-section">
           <h2 className="section-title">요일과 시간</h2>
-          <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart="16:00" defaultEnd={endTimeAfter('16:00', settings.lessonMinutes)} />
+          <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} defaultEnd={endTimeAfter(settings.lessonStart, settings.lessonMinutes)} />
           {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
           {scheduleChanged && (
             <div className="field">

@@ -72,21 +72,41 @@ test('입력 확인: 이름과 요일이 없으면 저장되지 않음', async (
   await expect(page.getByText('수업 이름을 적어 주세요')).toBeVisible()
 })
 
-test('설정의 기본 규칙: 새 수업의 횟수와 납부 방식, 보강 기한 기본값', async ({ page }) => {
+test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸면 새 수업에 쓰임', async ({ page }) => {
   await page.goto('/#/settings')
-  // 사용자와 정한 처음 값
+  const menu = page.getByRole('list', { name: '기본 규칙' })
+  await expect(menu.getByRole('link')).toHaveCount(3)
+  // 메뉴에 지금 값이 요약되어 보임 (사용자와 정한 처음 값)
+  await expect(menu.getByRole('link', { name: /수강료 납부/ })).toContainText('4회 · 선납 · 카드')
+  await expect(menu.getByRole('link', { name: /출결·보강/ })).toContainText('기한 없음')
+
+  await menu.getByRole('link', { name: /출결·보강/ }).click()
+  await expect(page.getByRole('heading', { name: '출결·보강', level: 1 })).toBeVisible()
   await expect(page.getByRole('radio', { name: /결석은 회차로 세지 않음/ })).toBeChecked()
   await expect(page.getByLabel('보강 기한')).toHaveValue('none')
   await expect(page.getByRole('checkbox', { name: '결석하면 보강' })).toBeChecked()
 
+  await page.goto('/#/settings')
+  await menu.getByRole('link', { name: /수강료 납부/ }).click()
   await page.getByLabel('수강료 횟수').fill('8')
   await page.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
   // 저장이 끝나 화면에 반영된 뒤에 다른 화면으로
   await expect(page.getByRole('radio', { name: '후납' })).toBeChecked()
+  await page.goto('/#/settings')
+  await expect(menu.getByRole('link', { name: /수강료 납부/ })).toContainText('8회 · 후납')
+
+  await menu.getByRole('link', { name: /수업·학생 추가/ }).click()
+  await page.getByLabel('시작 시각').fill('15:00')
+  await page.getByLabel('수업 시간').selectOption('40')
+  await expect(page.getByLabel('수업 시간')).toHaveValue('40')
+
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '수업' }).click()
   await page.getByRole('link', { name: '1:1 레슨' }).first().click()
   await expect(page.getByLabel('횟수', { exact: true })).toHaveValue('8')
   await expect(page.getByRole('radio', { name: '후납' })).toBeChecked()
+  await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '월', exact: true }).click()
+  await expect(page.getByLabel('수업 월요일 시작 시각')).toHaveValue('15:00')
+  await expect(page.getByLabel('수업 월요일 끝 시각')).toHaveValue('15:40')
 })
 
 test('화면 크기가 바뀌어도 적던 내용과 보던 화면이 그대로', async ({ page }, testInfo) => {
