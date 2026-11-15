@@ -10,9 +10,11 @@ import {
   scheduleWarnings,
 } from '../data/makeupRules'
 import { useMakeups, type MakeupPlan } from '../data/makeups'
+import { lessonTitle, messagePhone } from '../data/messages'
 import type { Makeup } from '../data/types'
 import { formatDate, isValidTime, today, type DateStr } from '../utils/date'
 import DateField from './DateField'
+import MessageActions from './MessageActions'
 import Sheet from './Sheet'
 import TimeSelect, { fromMinutes, toMinutes } from './TimeSelect'
 
@@ -195,6 +197,13 @@ function MakeupEditor({ makeups, onDone }: { makeups: Makeup[]; onDone(): void }
         </>
       )}
       {timeError && <p className="field-error">{timeError}</p>}
+      {date && !timeError && (
+        <MessageActions
+          kind="makeup"
+          phone={single ? messagePhone(index.students.get(first.studentId)) : undefined}
+          values={{ 이름: names, 수업: lessonTitle(cls), 빠진날: formatDate(first.missedOn), 날짜: formatDate(date), 시각: start }}
+        />
+      )}
       {warnings.length > 0 && (
         <ul className="warnings" aria-label="확인할 점">
           {warnings.map((warning) => (

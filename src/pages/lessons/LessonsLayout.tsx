@@ -108,7 +108,7 @@ function LessonList() {
       </div>
 
       {data.classes.length === 0 ? (
-        <Empty title="아직 수업이 없어요">
+        <Empty art="lessons" title="아직 수업이 없어요">
           1:1 레슨은 학생 정보와 수업을 한 번에 등록해요. 여러 명이 함께 듣는 수업은 그룹 수업으로 만들어요.
         </Empty>
       ) : (

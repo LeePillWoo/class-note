@@ -1,14 +1,16 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useMatch } from 'react-router'
 import Empty from '../../components/Empty'
-import { ChevronRightIcon, Icon } from '../../components/icons'
+import { AttendanceIcon, BackupIcon, ChevronRightIcon, DatabaseIcon, MessageIcon, RosterIcon, SlidersIcon } from '../../components/icons'
+import { useData } from '../../data/DataProvider'
 import { BILLING_LABELS } from '../../data/rules'
+import { studentStatus } from '../../data/schedule'
 import type { AbsenceCounting } from '../../data/types'
 import { useSettings } from '../../data/settings'
 import { PAYMENT_METHOD_LABELS } from '../../data/tuition'
 import { APP_NAME, Logo } from '../../layout/AppShell'
 import SplitView from '../../layout/SplitView'
-import { formatDate } from '../../utils/date'
+import { formatDate, today } from '../../utils/date'
 import { lastBackupDate } from './BackupPage'
 
 /** 설정: 왼쪽(좁은 화면은 첫 화면) 메뉴 + 누르면 들어가는 화면 */
@@ -46,28 +48,46 @@ interface MenuItem {
 
 function SettingsMenu() {
   const { settings } = useSettings()
+  const { data: db } = useData()
   const lastBackup = lastBackupDate()
+  const todayStr = today()
+  const statusCounts = { active: 0, paused: 0, left: 0 }
+  for (const student of db.students) statusCounts[studentStatus(student, todayStr)]++
+  const studentSummary =
+    db.students.length === 0
+      ? '아직 학생이 없어요'
+      : [`다니는 중 ${statusCounts.active}명`, statusCounts.paused > 0 && `쉬는 중 ${statusCounts.paused}명`, statusCounts.left > 0 && `그만둠 ${statusCounts.left}명`]
+          .filter(Boolean)
+          .join(' · ')
   const window = settings.makeupRule.window
   const makeupTargets = [settings.makeupRule.forAbsence && '결석', settings.makeupRule.forCancellation && '휴강'].filter(Boolean).join('·')
 
   const rules: MenuItem[] = [
     {
-      to: '/settings/fees',
-      title: '수강료 납부',
-      sub: `${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]}`,
-      icon: <Icon size={20}><rect x="2" y="5" width="20" height="14" rx="2" /><path d="M2 10h20M6 15h4" /></Icon>,
-    },
-    {
-      to: '/settings/lessons',
-      title: '수업·학생 추가',
-      sub: `${settings.lessonStart}부터 ${settings.lessonMinutes}분`,
-      icon: <Icon size={20}><circle cx="9" cy="8" r="3.5" /><path d="M2.5 20a6.5 6.5 0 0 1 11.6-4M19 14v6M16 17h6" /></Icon>,
+      to: '/settings/defaults',
+      title: '수업 기본값',
+      sub: `${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]} · ${settings.lessonStart}부터 ${settings.lessonMinutes}분`,
+      icon: <SlidersIcon />,
     },
     {
       to: '/settings/attendance',
       title: '출결·보강',
       sub: `${COUNTING_SHORT[settings.absenceCounting]} · ${makeupTargets ? `${makeupTargets} 보강` : '보강 없음'} · ${window.type === 'none' ? '기한 없음' : '기한 있음'}`,
-      icon: <Icon size={20}><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4M9 15.5l2 2 4-4" /></Icon>,
+      icon: <AttendanceIcon />,
+    },
+    {
+      to: '/settings/messages',
+      title: '안내 문구',
+      sub: '수강료, 결석, 보강을 알릴 때 복사하는 문구',
+      icon: <MessageIcon />,
+    },
+  ]
+  const people: MenuItem[] = [
+    {
+      to: '/settings/students',
+      title: '학생 관리',
+      sub: studentSummary,
+      icon: <RosterIcon />,
     },
   ]
   const data: MenuItem[] = [
@@ -75,13 +95,13 @@ function SettingsMenu() {
       to: '/settings/backup',
       title: '백업과 복원',
       sub: lastBackup ? `마지막 백업 ${formatDate(lastBackup)}` : '아직 백업하지 않았어요',
-      icon: <Icon size={20}><path d="M12 3v12M7 10l5 5 5-5M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" /></Icon>,
+      icon: <BackupIcon />,
     },
     {
       to: '/settings/data',
       title: '데이터 관리',
       sub: '예시 데이터 넣기, 모두 지우기',
-      icon: <Icon size={20}><ellipse cx="12" cy="5" rx="8" ry="3" /><path d="M4 5v14c0 1.7 3.6 3 8 3s8-1.3 8-3V5M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3" /></Icon>,
+      icon: <DatabaseIcon />,
     },
   ]
 
@@ -113,6 +133,7 @@ function SettingsMenu() {
         </div>
       </div>
       {list('기본 규칙', rules)}
+      {list('학생', people)}
       {list('데이터', data)}
       <div className="app-info">
         <Logo />

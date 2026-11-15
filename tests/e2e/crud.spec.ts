@@ -113,7 +113,7 @@ test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸�
   const menu = page.getByRole('list', { name: '기본 규칙' })
   await expect(menu.getByRole('link')).toHaveCount(3)
   // 메뉴에 지금 값이 요약되어 보임 (사용자와 정한 처음 값)
-  await expect(menu.getByRole('link', { name: /수강료 납부/ })).toContainText('4회 · 선납 · 카드')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('4회 · 선납 · 카드 · 16:00부터 60분')
   await expect(menu.getByRole('link', { name: /출결·보강/ })).toContainText('기한 없음')
 
   await menu.getByRole('link', { name: /출결·보강/ }).click()
@@ -123,20 +123,18 @@ test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸�
   await expect(page.getByRole('checkbox', { name: '결석하면 보강' })).toBeChecked()
 
   await page.goto('/#/settings')
-  await menu.getByRole('link', { name: /수강료 납부/ }).click()
+  await menu.getByRole('link', { name: /수업 기본값/ }).click()
   await page.getByLabel('수강료 횟수').fill('8')
   await page.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
   // 저장이 끝나 화면에 반영된 뒤에 다른 화면으로
   await expect(page.getByRole('radio', { name: '후납' })).toBeChecked()
-  await page.goto('/#/settings')
-  await expect(menu.getByRole('link', { name: /수강료 납부/ })).toContainText('8회 · 후납')
-
-  await menu.getByRole('link', { name: /수업·학생 추가/ }).click()
-  // 처음 값은 1시간 수업
+  // 수업 시간도 같은 화면에서 정함. 처음 값은 1시간 수업
   await expect(page.getByLabel('수업 시간')).toHaveValue('60')
   await page.getByLabel('시작 시각').selectOption('15:00')
   await page.getByLabel('수업 시간').selectOption('40')
   await expect(page.getByLabel('수업 시간')).toHaveValue('40')
+  await page.goto('/#/settings')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('8회 · 후납 · 카드 · 15:00부터 40분')
 
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '수업' }).click()
   await page.getByRole('link', { name: '1:1 레슨' }).first().click()

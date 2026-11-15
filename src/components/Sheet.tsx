@@ -1,5 +1,6 @@
 import { useEffect, useRef, type ReactNode } from 'react'
 import { useLightDismiss } from '../hooks/useLightDismiss'
+import { CloseIcon } from './icons'
 
 interface SheetProps {
   open: boolean
@@ -28,7 +29,14 @@ export default function Sheet({ open, onClose, label, children }: SheetProps) {
   return (
     // 창 안의 다른 창(날짜 고르기 등)이 닫힐 때도 close 알림이 전달되므로, 이 창이 닫힐 때만 반응합니다.
     <dialog ref={ref} className="sheet" aria-label={label} onClose={(event) => event.target === ref.current && onClose()}>
-      {open && <div className="sheet-body">{children}</div>}
+      {open && (
+        <div className="sheet-body">
+          <button type="button" className="icon-btn sheet-close" aria-label="창 닫기" onClick={() => ref.current?.close()}>
+            <CloseIcon />
+          </button>
+          {children}
+        </div>
+      )}
     </dialog>
   )
 }

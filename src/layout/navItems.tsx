@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Icon } from '../components/icons'
+import { Icon, LessonsIcon } from '../components/icons'
 
 export interface NavItem {
   to: string
@@ -24,15 +24,8 @@ export const navItems: NavItem[] = [
   {
     to: '/lessons',
     label: '수업',
-    // 사람과 음표
-    icon: (
-      <Icon>
-        <circle cx="9" cy="8" r="3.5" />
-        <path d="M2.5 20a6.5 6.5 0 0 1 11.6-4" />
-        <path d="M18 18V10l3-1" />
-        <circle cx="16.5" cy="18" r="1.8" />
-      </Icon>
-    ),
+    // 악보 공책
+    icon: <LessonsIcon />,
   },
   {
     to: '/makeups',

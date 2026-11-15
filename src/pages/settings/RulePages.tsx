@@ -9,18 +9,21 @@ import TimeSelect from '../../components/TimeSelect'
 
 // 설정 > 기본 규칙의 화면들. 바꾸면 바로 저장합니다.
 
-function SavedNote() {
+export function SavedNote() {
   return <p className="muted saved-note">바꾸면 바로 저장돼요</p>
 }
 
-/** 수강료 납부: 새 수업의 수강료 횟수, 받는 때, 납부 창에서 먼저 고를 방법 */
-export function FeeSettingsPage() {
+const MINUTES = [30, 40, 50, 60, 80, 90, 120]
+
+/** 수업 기본값: 새 수업의 수강료 횟수, 받는 때, 먼저 고를 납부 방법, 시작 시각과 수업 시간 */
+export function LessonDefaultsPage() {
   const { settings, save } = useSettings()
   const [countText, setCountText] = useState(String(settings.sessionCount))
   return (
     <section className="narrow">
-      <PageHeader title="수강료 납부" subtitle="새 수업을 만들 때의 기본값이에요. 수업마다 바꿀 수 있어요" backTo="/settings" />
+      <PageHeader title="수업 기본값" subtitle="새 수업을 만들 때 먼저 채워지는 값이에요. 수업마다 바꿀 수 있어요" backTo="/settings" />
       <div className="card form-section">
+        <h2 className="section-title">수강료</h2>
         <div className="field">
           <label className="field-label" htmlFor="rule-count">수강료 횟수</label>
           <div className="input-with-unit narrow-input">
@@ -60,20 +63,8 @@ export function FeeSettingsPage() {
           <p className="muted">수강료를 받을 때 이 방법이 먼저 골라져 있어요</p>
         </div>
       </div>
-      <SavedNote />
-    </section>
-  )
-}
-
-const MINUTES = [30, 40, 50, 60, 80, 90, 120]
-
-/** 수업·학생 추가: 새 1:1 레슨·그룹 수업의 기본 시작 시각과 수업 시간 */
-export function LessonSettingsPage() {
-  const { settings, save } = useSettings()
-  return (
-    <section className="narrow">
-      <PageHeader title="수업·학생 추가" subtitle="1:1 레슨이나 그룹 수업을 새로 만들 때, 요일을 고르면 이 시간이 먼저 채워져요. 끝 시각은 시작 시각에서 수업 시간만큼 뒤로 자동으로 맞춰져요" backTo="/settings" />
       <div className="card form-section">
+        <h2 className="section-title">수업 시간</h2>
         <div className="field-pair">
           <div className="field">
             <label className="field-label" htmlFor="rule-start">시작 시각</label>
@@ -88,7 +79,7 @@ export function LessonSettingsPage() {
             </select>
           </div>
         </div>
-        <p className="muted">수강료 횟수와 받는 때는 '수강료 납부'에서 정해요</p>
+        <p className="muted">요일을 고르면 이 시각이 먼저 채워지고, 끝 시각은 수업 시간만큼 뒤로 맞춰져요</p>
       </div>
       <SavedNote />
     </section>

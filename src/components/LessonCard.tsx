@@ -6,11 +6,13 @@ import { useData } from '../data/DataProvider'
 import { namesSummary, rollCounts, type GuestEntry, type LessonView, type RollEntry } from '../data/lessons'
 import { MAKEUP_STATE_LABELS, makeupState } from '../data/makeupRules'
 import { useMakeups } from '../data/makeups'
+import { lessonTitle } from '../data/messages'
 import { ROLL_STATUS_LABELS } from '../data/schedule'
 import type { Makeup } from '../data/types'
 import { formatDate, today } from '../utils/date'
 import Avatar from './Avatar'
 import { ChevronDownIcon } from './icons'
+import MessageActions from './MessageActions'
 import RollCheck, { useRollCycle } from './RollCheck'
 import { studentPath } from './paths'
 
@@ -134,7 +136,7 @@ export function LessonBody({ view, onOpenMakeup }: { view: LessonView; onOpenMak
       maxLength={100}
       autoComplete="off"
       aria-label={`${view.cls.name} 수업 메모`}
-      placeholder={view.cancelled ? '휴강 사유' : '수업 메모 (진도 등)'}
+      placeholder={view.cancelled ? '휴강 사유' : '수업 메모 (진도, 숙제)'}
       onChange={(event) => setMemo(event.target.value)}
       onBlur={() => setLessonMemo(classId, view.date, memo.trim())}
     />
@@ -255,6 +257,7 @@ function RollRow({ entry, view, onOpenMakeup }: { entry: RollEntry; view: Lesson
           ) : (
             <span className="muted">결석 보강은 설정에서 꺼져 있어요</span>
           )}
+          <MessageActions kind="absent" compact values={{ 이름: student.name, 수업: lessonTitle(view.cls), 날짜: formatDate(view.date) }} />
         </div>
       )}
     </li>

@@ -109,6 +109,22 @@ test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 �
   await page.goto('/#/settings/backup')
   await expect(page.getByRole('heading', { name: '백업과 복원', level: 1 })).toBeVisible()
   await expectNoHorizontalOverflow(page)
+
+  // 학생 관리: 모두 고르면 아래에 할 일 단추가 나옴
+  await page.goto('/#/settings/students')
+  await expect(page.getByRole('heading', { name: '학생 관리', level: 1 })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await page.getByRole('checkbox', { name: '모두 고르기' }).check()
+  await expect(page.getByRole('group', { name: /고른 학생/ })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await shot(page, testInfo, '13-settings-students')
+  await page.goto('/#/settings/messages')
+  await expect(page.getByRole('heading', { name: '안내 문구', level: 1 })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await shot(page, testInfo, '14-settings-messages')
+  await page.goto('/#/settings/defaults')
+  await expect(page.getByRole('heading', { name: '수업 기본값', level: 1 })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
 })
 
 test('창(보강, 납부, 주간 일정의 수업)이 화면 안에 들어오고 넘치지 않음', async ({ page }, testInfo) => {
@@ -127,7 +143,7 @@ test('창(보강, 납부, 주간 일정의 수업)이 화면 안에 들어오고
   await expect(page.getByRole('dialog', { name: '수업 출석부' })).toBeVisible()
   await inside('수업 출석부')
   await shot(page, testInfo, '10-lesson-sheet')
-  await page.getByRole('dialog', { name: '수업 출석부' }).getByRole('button', { name: '닫기' }).click()
+  await page.getByRole('dialog', { name: '수업 출석부' }).getByRole('button', { name: '닫기', exact: true }).click()
 
   await page.goto('/#/makeups')
   await page.getByRole('list', { name: '날짜를 잡아야 하는 보강' }).getByRole('button').first().click()

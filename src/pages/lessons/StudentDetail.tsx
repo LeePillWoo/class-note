@@ -2,24 +2,23 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import AttendanceCalendar from '../../components/AttendanceCalendar'
 import Avatar from '../../components/Avatar'
-import DateField from '../../components/DateField'
 import EnrollSheet, { EnrollmentSheet, type EnrollTarget } from '../../components/EnrollSheet'
 import { PencilIcon, PlusIcon } from '../../components/icons'
+import LessonNotes from '../../components/LessonNotes'
 import MakeupSheet from '../../components/MakeupSheet'
 import PageHeader from '../../components/PageHeader'
 import PaymentSheet, { paymentTargetOf, type PaymentTarget } from '../../components/PaymentSheet'
 import { RollLegend } from '../../components/RollTable'
 import { DueRow, MakeupRow, PaidRow, TuitionRow } from '../../components/rows'
-import Sheet from '../../components/Sheet'
+import StatusSheet from '../../components/StatusSheet'
 import { latestSlots } from '../../data/classes'
 import { useData } from '../../data/DataProvider'
 import { isOpenState, makeupState, urgencyKey } from '../../data/makeupRules'
 import { describeSlots } from '../../data/rules'
 import { STUDENT_STATUS_LABELS, currentClasses, studentStatus } from '../../data/schedule'
-import { describeBirthYear, openPause, useStudents } from '../../data/students'
+import { describeBirthYear, openPause, type StatusAction } from '../../data/students'
 import { dueNowOn, dueViews, tuitionState } from '../../data/tuition'
-import type { Student } from '../../data/types'
-import { WEEKDAY_NAMES, addDays, endOfMonth, formatDate, today, type DateStr } from '../../utils/date'
+import { WEEKDAY_NAMES, addDays, formatDate, today } from '../../utils/date'
 
 /** 전화·문자 주소에 넣을 번호 (숫자와 +만) */
 function dial(phone: string): string {
@@ -46,8 +45,6 @@ export function StudentDetailPage() {
   const { studentId = '' } = useParams()
   return <StudentDetail studentId={studentId} />
 }
-
-type StatusAction = 'pause' | 'resume' | 'leave' | 'rejoin'
 
 /**
  * 학생 한 명: 연락처, 출결 달력, 듣는 수업과 수강료, 보강, 납부.
@@ -147,6 +144,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
             <AttendanceCalendar student={student} />
             <RollLegend />
           </div>
+          {soloClassId && <LessonNotes classId={soloClassId} />}
         </div>
 
         <div className="detail-side">
@@ -258,72 +256,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
       <MakeupSheet ids={makeupIds} onClose={() => setMakeupIds(null)} />
       <EnrollSheet target={enrollTarget} onClose={() => setEnrollTarget(null)} />
       <EnrollmentSheet enrollment={data.enrollments.find((item) => item.id === enrollmentId) ?? null} onClose={() => setEnrollmentId(null)} />
-      <StatusSheet student={student} action={statusAction} onClose={() => setStatusAction(null)} />
+      <StatusSheet students={[student]} action={statusAction} onClose={() => setStatusAction(null)} />
     </section>
-  )
-}
-
-const STATUS_COPY: Record<StatusAction, { title: string; label: string; hint: string; button: string }> = {
-  pause: { title: '쉬기', label: '쉬기 시작하는 날', hint: '이날부터 수업 명단에서 빠지고, 남은 횟수는 그대로 남아요', button: '쉬는 것으로 저장' },
-  resume: { title: '다시 다니기', label: '다시 나오는 날', hint: '이날부터 다시 수업 명단에 올라가요', button: '다시 다니는 것으로 저장' },
-  leave: { title: '그만두기', label: '마지막으로 다닌 날', hint: '다음 날부터 수업 명단에서 빠져요. 지난 출결과 납부 기록은 그대로 남아요', button: '그만둔 것으로 저장' },
-  rejoin: { title: '다시 등록', label: '다시 나오는 날', hint: '이날부터 다시 수업 명단에 올라가요. 그사이는 쉰 것으로 남아요', button: '다시 등록' },
-}
-
-function StatusSheet({ student, action, onClose }: { student: Student; action: StatusAction | null; onClose(): void }) {
-  return (
-    <Sheet open={action !== null} onClose={onClose} label="학생 상태">
-      {action && <StatusEditor key={action} student={student} action={action} onDone={onClose} />}
-    </Sheet>
-  )
-}
-
-function StatusEditor({ student, action, onDone }: { student: Student; action: StatusAction; onDone(): void }) {
-  const { pauseStudent, resumeStudent, leaveStudent, rejoinStudent } = useStudents()
-  const [date, setDate] = useState<DateStr>(today())
-  const [busy, setBusy] = useState(false)
-  const [error, setError] = useState('')
-  const copy = STATUS_COPY[action]
-  // 다시 나오는 날은 쉬기 시작한 날(그만둔 다음 날)보다 앞일 수 없습니다.
-  const min = action === 'resume' ? openPause(student)?.from : action === 'rejoin' && student.leftOn ? addDays(student.leftOn, 1) : undefined
-  const last = action === 'leave' ? endOfMonth(date) : undefined
-
-  async function save() {
-    setBusy(true)
-    try {
-      if (action === 'pause') await pauseStudent(student, date)
-      else if (action === 'resume') await resumeStudent(student, date)
-      else if (action === 'leave') await leaveStudent(student, date)
-      else await rejoinStudent(student, date)
-      onDone()
-    } catch {
-      setError('저장하지 못했어요. 다시 시도해 주세요')
-      setBusy(false)
-    }
-  }
-
-  return (
-    <>
-      <div className="sheet-header">
-        <h2 className="sheet-title">{student.name} {copy.title}</h2>
-      </div>
-      <div className="field">
-        <label className="field-label" htmlFor="status-date">{copy.label}</label>
-        <DateField id="status-date" label={copy.label} value={date} onChange={setDate} min={min} />
-        <p className="muted">{copy.hint}</p>
-        {last && date !== last && (
-          <button type="button" className="btn btn-ghost btn-small" onClick={() => setDate(last)}>
-            이번 달 말({formatDate(last)})까지 다녀요
-          </button>
-        )}
-      </div>
-      {error && <p className="field-error" role="alert">{error}</p>}
-      <div className="sheet-actions">
-        <button type="button" className="btn btn-secondary" onClick={onDone} disabled={busy}>닫기</button>
-        <button type="button" className="btn btn-primary" disabled={busy || (min !== undefined && date < min)} onClick={save}>
-          {copy.button}
-        </button>
-      </div>
-    </>
   )
 }

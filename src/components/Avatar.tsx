@@ -6,7 +6,7 @@ interface AvatarProps {
   color: string
   /** 사진 (data URL). 있으면 사진, 없으면 이름 첫 글자 */
   photo?: string
-  size?: 'sm' | 'md' | 'lg'
+  size?: 'sm' | 'md' | 'lg' | 'xl'
   /** 그룹 수업은 둥근 네모 */
   square?: boolean
 }

@@ -229,6 +229,8 @@ export interface AppSettings extends BaseRecord {
   lessonMinutes: number
   /** 새 수업의 기본 시작 시각 'HH:MM' */
   lessonStart: string
+  /** 보호자 안내 문구 (수강료, 결석, 보강). {이름} 같은 칸은 복사할 때 값으로 바뀝니다. (messages.ts) */
+  messages: { due: string; absent: string; makeup: string }
 }
 
 /** 저장하는 데이터 종류입니다. 새 종류는 여기에 추가합니다. */

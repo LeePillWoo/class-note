@@ -1,5 +1,6 @@
 import { useData } from './DataProvider'
 import { nowIso } from './id'
+import { defaultMessages } from './messages'
 import type { AppSettings, BaseRecord, ClassGroup, Database } from './types'
 
 export const SETTINGS_ID = 'app'
@@ -20,13 +21,16 @@ export function defaultSettings(): SettingsValues {
     method: 'card',
     lessonMinutes: 60,
     lessonStart: '16:00',
+    messages: defaultMessages(),
   }
 }
 
 /** 저장된 설정. 없거나 빠진 항목은 처음 값으로 채웁니다. */
 export function settingsOf(db: Database): AppSettings {
   const saved = db.settings.find((item) => item.id === SETTINGS_ID)
-  return { id: SETTINGS_ID, createdAt: '', updatedAt: '', ...defaultSettings(), ...saved }
+  const defaults = defaultSettings()
+  // 문구는 종류가 늘어날 수 있어, 저장된 것에 없는 종류는 처음 문구로 채웁니다.
+  return { id: SETTINGS_ID, createdAt: '', updatedAt: '', ...defaults, ...saved, messages: { ...defaults.messages, ...saved?.messages } }
 }
 
 /** 예전 버전에서 만든 기록에 새로 생긴 항목을 채웁니다. (불러올 때, 백업을 가져올 때) */

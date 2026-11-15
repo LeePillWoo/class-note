@@ -2,13 +2,15 @@ import { useState } from 'react'
 import { useData } from '../data/DataProvider'
 import { settingsOf } from '../data/settings'
 import { lastMethod, latestPaid, rememberMethod, usePayments } from '../data/payments'
+import { lessonTitle, messagePhone } from '../data/messages'
 import { describeFee } from '../data/rules'
 import { PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, describeRemaining, tuitionState, type DueView } from '../data/tuition'
 import type { Payment, PaymentKind, PaymentMethod, Student } from '../data/types'
 import { formatDate, today, type DateStr } from '../utils/date'
-import { formatNumber, parseAmount } from '../utils/money'
+import { formatNumber, formatWon, parseAmount } from '../utils/money'
 import AmountInput from './AmountInput'
 import DateField from './DateField'
+import MessageActions from './MessageActions'
 import Segmented from './Segmented'
 import Sheet from './Sheet'
 
@@ -112,11 +114,22 @@ function TuitionEditor({ target, onDone }: { target: Extract<PaymentTarget, { ty
           {target.dueOn ? `, 받을 날 ${formatDate(target.dueOn)}` : ', 미리 받는 수강료'}
         </p>
       </div>
+      <MessageActions
+        kind="due"
+        phone={messagePhone(student)}
+        values={{
+          이름: student.name,
+          수업: lessonTitle(cls),
+          횟수: validSessions ? String(sessions) : String(fee.sessionCount),
+          금액: amount ? formatWon(amount) : '',
+          날짜: formatDate(target.dueOn ?? todayStr),
+        }}
+      />
 
-      <div className="field-pair">
+      <div className="fee-pair is-top">
         <div className="field">
           <label className="field-label" htmlFor="payment-sessions">횟수</label>
-          <div className="count-input">
+          <div className="input-with-unit">
             <input id="payment-sessions" className="input" inputMode="numeric" autoComplete="off" value={sessionsText}
               aria-invalid={!validSessions} onChange={(event) => changeSessions(event.target.value)} />
             <span className="unit">회분</span>
@@ -202,11 +215,11 @@ function RecordEditor({ payment, onDone }: { payment: Payment; onDone(): void })
         </p>
       </div>
 
-      <div className="field-pair">
+      <div className={tuition ? 'fee-pair is-top' : 'field-pair'}>
         {tuition && (
           <div className="field">
             <label className="field-label" htmlFor="payment-sessions">횟수</label>
-            <div className="count-input">
+            <div className="input-with-unit">
               <input id="payment-sessions" className="input" inputMode="numeric" autoComplete="off" value={sessionsText}
                 aria-invalid={!validSessions} onChange={(event) => setSessionsText(event.target.value.replace(/[^\d]/g, '').slice(0, 3))} />
               <span className="unit">회분</span>

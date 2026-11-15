@@ -316,6 +316,16 @@ export function paidInMonth(payments: Payment[], month: string): Payment[] {
     .sort((a, b) => `${b.paidOn}${b.updatedAt}`.localeCompare(`${a.paidOn}${a.updatedAt}`))
 }
 
+/** 달('YYYY-MM')마다 받은 돈의 합계. months와 같은 순서로 돌려줍니다. */
+export function monthlyPaidTotals(payments: Payment[], months: string[]): number[] {
+  const totals = new Map(months.map((month) => [month, 0]))
+  for (const payment of payments) {
+    const month = payment.paidOn?.slice(0, 7)
+    if (month !== undefined && totals.has(month)) totals.set(month, totals.get(month)! + payment.amount)
+  }
+  return months.map((month) => totals.get(month)!)
+}
+
 export function sumAmounts(items: { amount: number }[]): number {
   return items.reduce((sum, item) => sum + item.amount, 0)
 }

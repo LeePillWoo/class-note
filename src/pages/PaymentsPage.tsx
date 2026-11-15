@@ -1,10 +1,11 @@
 import { useMemo, useState } from 'react'
 import { BackIcon, ChevronRightIcon, PlusIcon } from '../components/icons'
+import Empty from '../components/Empty'
 import PageHeader from '../components/PageHeader'
 import PaymentSheet, { paymentTargetOf, type PaymentTarget } from '../components/PaymentSheet'
 import { DueRow, PaidRow, TuitionRow } from '../components/rows'
 import { useData } from '../data/DataProvider'
-import { allTuitionStates, dueNowOn, dueViews, paidInMonth, sumAmounts } from '../data/tuition'
+import { allTuitionStates, dueNowOn, dueViews, monthlyPaidTotals, paidInMonth, sumAmounts } from '../data/tuition'
 import { addDays, addMonths, dateParts, endOfMonth, startOfMonth, today } from '../utils/date'
 import { formatWon } from '../utils/money'
 
@@ -29,6 +30,14 @@ export default function PaymentsPage() {
   )
   const paid = useMemo(() => paidInMonth(data.payments, month.slice(0, 7)), [data.payments, month])
   const current = states.filter((state) => state.current)
+  // 막대로 보여줄 여섯 달: 이번 달까지. 더 예전 달을 보고 있으면 그 달부터
+  const chartMonths = useMemo(() => {
+    const end = startOfMonth(todayStr)
+    const start = month < addMonths(end, -5) ? month : addMonths(end, -5)
+    return Array.from({ length: 6 }, (_, position) => addMonths(start, position)).filter((item) => item <= end)
+  }, [month, todayStr])
+  const chartTotals = useMemo(() => monthlyPaidTotals(data.payments, chartMonths.map((item) => item.slice(0, 7))), [data.payments, chartMonths])
+  const chartMax = Math.max(...chartTotals, 1)
 
   const { year, month: monthNumber } = dateParts(month)
   const thisMonth = month === startOfMonth(todayStr)
@@ -47,8 +56,10 @@ export default function PaymentsPage() {
       />
 
       {data.students.length === 0 ? (
-        <div className="card narrow">
-          <p className="muted">학생을 반에 넣으면 수강료와 남은 횟수가 여기에 보여요.</p>
+        <div className="narrow">
+          <Empty art="payments" title="아직 받을 수강료가 없어요">
+            수업에 학생을 넣으면 수강료와 남은 횟수가 여기에 보여요.
+          </Empty>
         </div>
       ) : (
         <div className="duo">
@@ -101,6 +112,26 @@ export default function PaymentsPage() {
                       </button>
                     <span className="amount cal-meta">{formatWon(sumAmounts(paid))}</span>
                   </div>
+                  <ol className="bars" aria-label="달마다 받은 돈">
+                    {chartMonths.map((item, position) => {
+                      const label = `${dateParts(item).month}월`
+                      const total = chartTotals[position]
+                      return (
+                        <li key={item}>
+                          <button type="button" className="bar" aria-pressed={item === month} aria-label={`${label} ${formatWon(total)}`} title={`${label} ${formatWon(total)}`}
+                            onClick={() => setMonth(item)}>
+                            <span className="bar-track">
+                              <span className="bar-fill" style={{ height: `${(total / chartMax) * 100}%` }} />
+                            </span>
+                            <span className="bar-label">{label}</span>
+                          </button>
+                        </li>
+                      )
+                    })}
+                  </ol>
+                  <p className="muted bars-note">
+                    {year}년에 받은 돈 <strong className="amount">{formatWon(sumAmounts(data.payments.filter((item) => item.paidOn?.startsWith(String(year)))))}</strong>
+                  </p>
                 </div>
                 {paid.length === 0 ? (
                   <p className="empty-line">{monthNumber}월에 받은 돈이 없어요</p>

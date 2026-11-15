@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import MakeupSheet from '../components/MakeupSheet'
+import Empty from '../components/Empty'
 import PageHeader from '../components/PageHeader'
 import { MakeupRow } from '../components/rows'
 import { useData } from '../data/DataProvider'
@@ -54,8 +55,10 @@ export default function MakeupsPage() {
     <section>
       <PageHeader title="보강" subtitle="결석이나 휴강을 적으면 여기에 보강이 생겨요." />
       {nothing ? (
-        <div className="card narrow">
-          <p className="muted">아직 보강이 없어요. 결석이나 휴강을 적으면 설정의 보강 규칙에 따라 보강이 생겨요</p>
+        <div className="narrow">
+          <Empty art="makeups" title="아직 보강이 없어요">
+            결석이나 휴강을 적으면 설정의 보강 규칙에 따라 보강이 생겨요.
+          </Empty>
         </div>
       ) : (
         <div className="duo">

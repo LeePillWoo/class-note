@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router'
 import Avatar from '../../components/Avatar'
 import EnrollSheet, { EnrollmentSheet } from '../../components/EnrollSheet'
 import { BackIcon, ChevronRightIcon, PencilIcon, PlusIcon } from '../../components/icons'
+import LessonNotes from '../../components/LessonNotes'
 import PageHeader from '../../components/PageHeader'
 import { studentPath } from '../../components/paths'
 import PaymentSheet, { type PaymentTarget } from '../../components/PaymentSheet'
@@ -124,6 +125,7 @@ function GroupDetail({ classId }: { classId: string }) {
             <RollTable cls={cls} month={month} />
             <RollLegend />
           </div>
+          <LessonNotes classId={cls.id} />
         </div>
 
         <div className="detail-side">
