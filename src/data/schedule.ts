@@ -40,6 +40,8 @@ export interface DataIndex {
   makeupsByStudent: Map<string, Makeup[]>
   /** 받은 수강료 (학생|반 별) */
   tuitionByPair: Map<string, Payment[]>
+  /** 반마다 계산해 둔 수업 날. 같은 반 학생들의 회차를 셀 때 수업 날을 학생 수만큼 다시 계산하지 않게 합니다. */
+  lessonCache: Map<string, { to: DateStr; lessons: ClassLesson[] }>
 }
 
 function groupBy<T>(items: T[], keyOf: (item: T) => string | undefined): Map<string, T[]> {
@@ -74,6 +76,7 @@ export function buildIndex(db: Database): DataIndex {
     tuitionByPair: groupBy(db.payments, (item) =>
       item.kind === 'tuition' && item.classId && item.paidOn ? pairKey(item.studentId, item.classId) : undefined,
     ),
+    lessonCache: new Map(),
   }
 }
 
@@ -105,6 +108,16 @@ export function classLessons(cls: ClassGroup, from: DateStr, to: DateStr): Class
     if (lesson) result.push(lesson)
   }
   return result
+}
+
+/** classLessons와 같지만, 반 시작일부터 계산해 둔 것을 다시 씁니다. (찾아보기는 데이터가 바뀔 때마다 새로 만들어집니다) */
+function cachedClassLessons(index: DataIndex, cls: ClassGroup, from: DateStr, to: DateStr): ClassLesson[] {
+  let cached = index.lessonCache.get(cls.id)
+  if (!cached || cached.to < to) {
+    cached = { to, lessons: classLessons(cls, cls.startedOn, to) }
+    index.lessonCache.set(cls.id, cached)
+  }
+  return cached.lessons.filter((lesson) => lesson.date >= from && lesson.date <= to)
 }
 
 // ===== 학생이 그 수업을 듣는지 =====
@@ -243,7 +256,7 @@ export function studentLessons(
   if (!cls || !student) return []
   const enrollments = (index.enrollmentsByStudent.get(studentId) ?? []).filter((item) => item.classId === classId)
   const result: StudentLesson[] = []
-  for (const lesson of classLessons(cls, from, to)) {
+  for (const lesson of cachedClassLessons(index, cls, from, to)) {
     if (isAway(student, lesson.date) || !enrollments.some((item) => enrollmentCovers(item, lesson.date))) continue
     result.push({ ...lesson, studentId, status: rollStatus(index, classId, lesson.date, studentId, todayStr) })
   }

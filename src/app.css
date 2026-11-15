@@ -319,6 +319,20 @@ dialog::backdrop {
   }
 }
 
+/* 폴드8의 접은 화면처럼 높이가 낮은 세로 화면: 큰 그림을 낮춰 오늘 수업이 더 보이게 합니다. */
+@media (max-height: 660px) and (max-width: 599px) {
+  .hero {
+    margin-top: 1.5rem;
+    margin-bottom: 1.125rem;
+  }
+
+  .hero-text {
+    min-height: 7.75rem;
+    padding-top: 0.75rem;
+    padding-bottom: 0.75rem;
+  }
+}
+
 /* ===== 수업 카드 (누르면 펼쳐서 출결을 적습니다) ===== */
 .lessons {
   display: grid;
