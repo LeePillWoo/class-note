@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { markAllPresentChanges, setAttendanceChanges, setAttendanceMemoChanges, setCancelledChanges, setLessonMemoChanges } from './attendanceChanges'
 import { dayLessons, rollCounts, uncheckedLessons } from './lessons'
-import { makeupState } from './makeupRules'
+import { defaultMakeupTime, makeupState, scheduleWarnings } from './makeupRules'
 import { withPlan } from './makeups'
 import { buildIndex, makeupId } from './schedule'
 import { makeClass, makeDatabase, makeEnrollment, makeStudent, NOW, run, slot } from './testkit'
@@ -102,6 +102,27 @@ describe('출결과 보강', () => {
     expect(db.lessonNotes[0]).toMatchObject({ cancelled: false, memo: '2단원' })
     db = run(db, (current) => setLessonMemoChanges(current, 'c', '2026-11-09', '', NOW))
     expect(db.lessonNotes).toHaveLength(0)
+  })
+})
+
+describe('보강 날짜 잡기', () => {
+  // c반: 월·수 16:00~17:00, d반: 토 11:00~12:00
+  const db = base()
+  const [c] = db.classes
+
+  it('기본 시각: 그날 그 반 수업이 있으면 끝난 바로 뒤, 없으면 빠진 날의 수업 시각', () => {
+    expect(defaultMakeupTime(c, '2026-11-11', '2026-11-09')).toEqual({ start: '17:00', end: '18:00' })
+    expect(defaultMakeupTime(c, '2026-11-14', '2026-11-09')).toEqual({ start: '16:00', end: '17:00' })
+  })
+
+  it('기한을 넘기거나 다른 수업과 시간이 겹치면 알려줌 (같이 듣는 수업은 겹쳐도 됨)', () => {
+    const makeups = run(db, (current) => setAttendanceChanges(current, 'c', '2026-11-09', '가', 'absent', NOW)).makeups
+    const index = buildIndex(db)
+    expect(scheduleWarnings({ index, makeups, date: '2026-11-14', start: '14:00', end: '15:00' })).toEqual([])
+    expect(scheduleWarnings({ index, makeups, date: '2026-11-14', start: '11:30', end: '12:30' })).toEqual(['d 수업(11:00~12:00)과 시간이 겹쳐요.'])
+    expect(scheduleWarnings({ index, makeups, date: '2026-11-14', start: '11:00', end: '12:00', joinClassId: 'd' })).toEqual([])
+    // 기한은 11월 23일
+    expect(scheduleWarnings({ index, makeups, date: '2026-11-24', start: '10:00', end: '11:00' })[0]).toContain('보강 기한')
   })
 })
 

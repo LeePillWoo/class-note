@@ -121,6 +121,15 @@ function LessonBody({ view, future, onOpenMakeup }: { view: LessonView; future: 
           휴강한 수업이에요.{' '}
           {makeups.length > 0 ? `학생 ${makeups.length}명에게 보강이 생겼어요.` : '이 반은 휴강 보강을 하지 않아요.'}
         </p>
+        {view.guests.length > 0 && (
+          // 이 수업에 같이 듣기로 한 보강 학생은 수업이 없어졌으니 날짜를 다시 잡아야 합니다.
+          <p className="warnings" role="note">
+            이 수업에 같이 듣기로 한 보강 {view.guests.length}명({view.guests.map((guest) => guest.student.name).join(', ')})은 날짜를 다시 잡아 주세요.{' '}
+            <button type="button" className="link-btn inline" onClick={() => onOpenMakeup(view.guests.map((guest) => guest.makeup.id))}>
+              다시 잡기
+            </button>
+          </p>
+        )}
         {lessonMemo}
         <div className="lesson-actions">
           {pending.length > 0 && (

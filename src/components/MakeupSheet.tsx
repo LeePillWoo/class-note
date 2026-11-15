@@ -172,7 +172,9 @@ function MakeupEditor({ makeups, onDone }: { makeups: Makeup[]; onDone(): void }
                   ),
                 )}
               </ul>
-              <p className="muted">다른 수업 시간에 같이 듣게 하려면 그 수업을 누르세요. 따로 시간을 잡으려면 아래 시각만 정하면 돼요.</p>
+              {lessons.some(joinable) && (
+                <p className="muted">다른 수업 시간에 같이 듣게 하려면 그 수업을 누르세요. 따로 시간을 잡으려면 아래 시각만 정하면 돼요.</p>
+              )}
             </div>
           )}
           <div className="slot-row">

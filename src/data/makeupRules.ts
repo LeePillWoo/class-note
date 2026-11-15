@@ -60,10 +60,29 @@ export function urgencyKey(makeup: Makeup): string {
   return makeup.scheduledOn ?? makeup.deadline ?? '9999-12-31'
 }
 
-/** 보강 날짜를 잡을 때 기본 시각: 그 요일의 원래 수업 시각 → 빠진 날의 수업 시각 → 16:00~17:00 */
+/** 'HH:MM'에 분을 더합니다. 자정을 넘기면 23:59로 맞춥니다. */
+function addMinutes(time: TimeStr, minutes: number): TimeStr {
+  const [hours, mins] = time.split(':').map(Number)
+  const total = Math.min(hours * 60 + mins + minutes, 23 * 60 + 59)
+  return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
+}
+
+function minutesBetween(start: TimeStr, end: TimeStr): number {
+  const [startHours, startMins] = start.split(':').map(Number)
+  const [endHours, endMins] = end.split(':').map(Number)
+  return endHours * 60 + endMins - (startHours * 60 + startMins)
+}
+
+/**
+ * 보강 날짜를 잡을 때 기본 시각.
+ * - 그날 이 반의 수업이 있으면 **그 수업이 끝난 바로 뒤** (같은 길이). 원래 수업 시간과 겹치지 않게
+ * - 없으면 빠진 날의 수업 시각, 그것도 없으면 16:00~17:00
+ */
 export function defaultMakeupTime(cls: ClassGroup, date: DateStr, missedOn: DateStr): { start: TimeStr; end: TimeStr } {
-  const lesson = lessonOn(cls, date) ?? lessonOn(cls, missedOn)
-  return lesson ? { start: lesson.start, end: lesson.end } : { start: '16:00', end: '17:00' }
+  const sameDay = lessonOn(cls, date)
+  if (sameDay) return { start: sameDay.end, end: addMinutes(sameDay.end, Math.max(10, minutesBetween(sameDay.start, sameDay.end))) }
+  const missed = lessonOn(cls, missedOn)
+  return missed ? { start: missed.start, end: missed.end } : { start: '16:00', end: '17:00' }
 }
 
 /** 두 시간대가 겹치는지 */

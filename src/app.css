@@ -1104,6 +1104,20 @@ dialog::backdrop {
   background: var(--color-ink);
 }
 
+/* 문장 안에 들어가는 글자 단추 */
+.link-btn.inline {
+  display: inline;
+  min-height: 0;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: 600;
+}
+
+p.warnings {
+  padding-left: 0.75rem;
+}
+
 /* ===== 그 밖 ===== */
 .stack {
   display: grid;
