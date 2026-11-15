@@ -13,6 +13,7 @@ import { formatDate, today } from '../utils/date'
 import Avatar from './Avatar'
 import { ChevronDownIcon } from './icons'
 import MessageActions from './MessageActions'
+import { lengthLabel, toMinutes } from './TimeSelect'
 import RollCheck, { useRollCycle } from './RollCheck'
 import { studentPath } from './paths'
 
@@ -31,9 +32,9 @@ function hasProgress(makeup: Makeup | undefined): boolean {
   return !!makeup && (makeup.status !== 'open' || !!makeup.scheduledOn)
 }
 
-function minutesBetween(start: string, end: string): number {
-  const toMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5))
-  return toMinutes(end) - toMinutes(start)
+/** 수업 길이 글자. 예: '1시간', '50분' */
+function lengthOf(start: string, end: string): string {
+  return lengthLabel(toMinutes(end) - toMinutes(start))
 }
 
 /** 그룹 수업·보강 수업에 오는 학생들: 대표 두 명과 나머지 수 (1:1 레슨은 이름이 곧 학생이라 빈 글자) */
@@ -57,7 +58,7 @@ export function lessonSummary(view: LessonView, todayStr: string): { badge: { cl
   let summary: string
   if (view.cancelled) summary = `학생 ${view.roll.length}명`
   else if (counts.total === 0) summary = '학생 없음'
-  else if (counts.present + counts.absent === 0) summary = view.cls.kind === 'solo' ? `${minutesBetween(view.start, view.end)}분` : `${counts.total}명 · ${minutesBetween(view.start, view.end)}분`
+  else if (counts.present + counts.absent === 0) summary = view.cls.kind === 'solo' ? `${lengthOf(view.start, view.end)}` : `${counts.total}명 · ${lengthOf(view.start, view.end)}`
   else {
     summary = [`출석 ${counts.present}`, counts.absent > 0 && `결석 ${counts.absent}`, counts.unchecked > 0 && `체크 전 ${counts.unchecked}`]
       .filter(Boolean)

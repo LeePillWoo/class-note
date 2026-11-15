@@ -1,4 +1,5 @@
 import { sortSlots } from '../data/rules'
+import { snapLength, snapTime, useSettings } from '../data/settings'
 import type { TimeSlot } from '../data/types'
 import { WEEKDAY_NAMES, WEEKDAYS_FROM_MONDAY, type Weekday } from '../utils/date'
 import TimeSelect, { fromMinutes, toMinutes } from './TimeSelect'
@@ -18,7 +19,11 @@ interface WeekdaySlotsEditorProps {
  * 요일을 고르고(월~일), 고른 요일마다 시작·끝 시각을 고릅니다.
  * 시작 시각을 바꾸면 끝 시각은 수업 시간만큼 뒤로 자동으로 맞춰지고, 그 뒤에 끝 시각만 따로 고칠 수 있습니다.
  */
-export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStart, duration }: WeekdaySlotsEditorProps) {
+export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStart: rawStart, duration: rawDuration }: WeekdaySlotsEditorProps) {
+  const { settings } = useSettings()
+  // 기본 시각과 수업 시간도 시각 단위에 맞춥니다. (정각 단위면 정각에 시작해 정각에 끝남)
+  const defaultStart = snapTime(rawStart, settings.timeStep)
+  const duration = snapLength(rawDuration, settings.timeStep)
   const sorted = sortSlots(slots)
 
   function toggle(weekday: Weekday) {

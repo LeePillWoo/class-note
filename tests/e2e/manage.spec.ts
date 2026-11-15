@@ -1,7 +1,7 @@
 import { expect, test, type Page } from '@playwright/test'
 import { acceptNextConfirm, addSolo, expectNoHorizontalOverflow, loadSample, shot } from './helpers'
 
-// 기능 테스트: 학생 관리(여러 명 한 번에), 프로필 사진 자리 맞추기, 안내 문구, 달마다 받은 돈, 수업 기록
+// 기능 테스트: 학생 관리(여러 명 한 번에), 프로필 사진 자리 맞추기, 안내 문구 복사, 달마다 받은 돈, 수업 기록
 
 /** 가로로 긴 그림 파일(600×300, 왼쪽 빨강·오른쪽 파랑)을 브라우저에서 만들어 돌려줍니다. */
 async function wideImage(page: Page): Promise<Buffer> {
@@ -159,27 +159,20 @@ test('프로필 사진: 끌어서 옮김', async ({ page }) => {
   expect(red).toBeGreaterThan(blue + 60)
 })
 
-test('안내 문구: 설정에서 고친 문구가 수강료 창에 학생 값으로 채워져 나오고 복사됨', async ({ page, context }) => {
+test('안내 문구: 수강료 창에 학생 값으로 채워진 문구가 나오고 복사됨, 설정에는 안내 문구 메뉴가 없음', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
   await loadSample(page)
-  await page.goto('/#/settings/messages')
-  await expect(page.getByRole('heading', { name: '안내 문구', level: 1 })).toBeVisible()
-  const due = page.getByLabel('수강료 안내', { exact: true })
-  await due.fill('{이름} 학생 {수업} {횟수}회분 {금액}입니다.')
-  await expect(page.locator('.message-text').first()).toHaveText('김하늘 학생 우쿨렐레 레슨 4회분 16만 원입니다.')
-  // 칸 단추를 누르면 글 끝에 들어감
-  await page.getByRole('group', { name: '수강료 안내에 넣을 칸' }).getByRole('button', { name: '{날짜}' }).click()
-  await expect(due).toHaveValue('{이름} 학생 {수업} {횟수}회분 {금액}입니다. {날짜}')
-  await expectNoHorizontalOverflow(page)
+  await page.goto('/#/settings')
+  await expect(page.getByRole('link', { name: /안내 문구/ })).toHaveCount(0)
 
   await page.goto('/#/payments')
   await page.getByRole('list', { name: '받을 돈', exact: true }).getByRole('button', { name: /박지호/ }).click()
   const sheet = page.getByRole('dialog', { name: '납부' })
   await sheet.getByText('수강료 안내 문구').click()
-  await expect(sheet.locator('.message-text')).toContainText('박지호 학생 우쿨렐레 초급반 8회분 16만 원입니다.')
+  await expect(sheet.locator('.message-text')).toContainText('박지호 학생 우쿨렐레 초급반 수강료 8회분 16만 원')
   await sheet.getByRole('button', { name: '문구 복사' }).click()
   await expect(sheet.getByRole('button', { name: '복사했어요' })).toBeVisible()
-  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('박지호 학생 우쿨렐레 초급반 8회분 16만 원입니다.')
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toContain('박지호 학생 우쿨렐레 초급반 수강료 8회분 16만 원')
   // 보호자 번호가 있으면 문자로도 보냄
   await expect(sheet.getByRole('link', { name: '문자로 보내기' })).toHaveAttribute('href', /^sms:0100000\d+\?body=/)
 })

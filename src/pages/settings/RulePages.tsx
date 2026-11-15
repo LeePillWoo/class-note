@@ -2,10 +2,10 @@ import { useState } from 'react'
 import PageHeader from '../../components/PageHeader'
 import Segmented from '../../components/Segmented'
 import { ABSENCE_COUNTING_HINTS, ABSENCE_COUNTING_LABELS, BILLING_HINTS, BILLING_LABELS } from '../../data/rules'
-import { useSettings } from '../../data/settings'
+import { lessonLengths, snapLength, snapTime, useSettings } from '../../data/settings'
 import { PAYMENT_METHOD_LABELS } from '../../data/tuition'
-import type { AbsenceCounting, Billing, MakeupWindow, PaymentMethod } from '../../data/types'
-import TimeSelect from '../../components/TimeSelect'
+import type { AbsenceCounting, Billing, MakeupWindow, PaymentMethod, TimeStep } from '../../data/types'
+import TimeSelect, { lengthLabel } from '../../components/TimeSelect'
 
 // 설정 > 기본 규칙의 화면들. 바꾸면 바로 저장합니다.
 
@@ -13,7 +13,7 @@ export function SavedNote() {
   return <p className="muted saved-note">바꾸면 바로 저장돼요</p>
 }
 
-const MINUTES = [30, 40, 50, 60, 80, 90, 120]
+const STEP_LABELS: Record<TimeStep, string> = { 60: '정각', 30: '30분', 10: '10분' }
 
 /** 수업 기본값: 새 수업의 수강료 횟수, 받는 때, 먼저 고를 납부 방법, 시작 시각과 수업 시간 */
 export function LessonDefaultsPage() {
@@ -65,6 +65,23 @@ export function LessonDefaultsPage() {
       </div>
       <div className="card form-section">
         <h2 className="section-title">수업 시간</h2>
+        <div className="field">
+          <span className="field-label">시각 단위</span>
+          <Segmented<string>
+            label="시각 단위"
+            name="rule-step"
+            value={String(settings.timeStep)}
+            onChange={(value) => {
+              const timeStep = Number(value) as TimeStep
+              // 바꾼 단위에 맞게 기본 시작 시각과 수업 시간도 맞춥니다.
+              void save({ timeStep, lessonStart: snapTime(settings.lessonStart, timeStep), lessonMinutes: snapLength(settings.lessonMinutes, timeStep) })
+            }}
+            options={([60, 30, 10] as TimeStep[]).map((step) => ({ value: String(step), label: STEP_LABELS[step] }))}
+          />
+          <p className="muted">
+            {settings.timeStep === 60 ? '수업은 정각에 시작해 정각에 끝나요. (예: 오후 4:00 ~ 5:00)' : `시각을 ${settings.timeStep}분마다 고를 수 있어요`}
+          </p>
+        </div>
         <div className="field-pair">
           <div className="field">
             <label className="field-label" htmlFor="rule-start">시작 시각</label>
@@ -73,8 +90,8 @@ export function LessonDefaultsPage() {
           <div className="field">
             <label className="field-label" htmlFor="rule-minutes">수업 시간</label>
             <select id="rule-minutes" className="input" value={settings.lessonMinutes} onChange={(event) => void save({ lessonMinutes: Number(event.target.value) })}>
-              {MINUTES.map((minutes) => (
-                <option key={minutes} value={minutes}>{minutes}분</option>
+              {lessonLengths(settings.timeStep).map((minutes) => (
+                <option key={minutes} value={minutes}>{lengthLabel(minutes)}</option>
               ))}
             </select>
           </div>

@@ -1,3 +1,6 @@
+import { useSettings } from '../data/settings'
+import type { TimeStep } from '../data/types'
+
 /** 'HH:MM' → 분 */
 export function toMinutes(time: string): number {
   return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5))
@@ -18,8 +21,17 @@ export function timeLabel(time: string): string {
   return `${half} ${shown}:${minutes}`
 }
 
-/** 고를 수 있는 시각: 오전 6시부터 오후 11시 50분까지 10분마다 (오전이 먼저) */
-const TIMES = Array.from({ length: (24 - 6) * 6 }, (_, step) => fromMinutes(6 * 60 + step * 10))
+/** 수업 길이. 예: 60 → '1시간', 90 → '1시간 30분', 40 → '40분' */
+export function lengthLabel(minutes: number): string {
+  const hours = Math.floor(minutes / 60)
+  const rest = minutes % 60
+  return [hours > 0 && `${hours}시간`, rest > 0 && `${rest}분`].filter(Boolean).join(' ')
+}
+
+/** 고를 수 있는 시각: 오전 6시부터 밤까지 시각 단위(정각, 30분, 10분)마다 (오전이 먼저) */
+export function timeOptions(step: TimeStep): string[] {
+  return Array.from({ length: ((24 - 6) * 60) / step }, (_, position) => fromMinutes(6 * 60 + position * step))
+}
 
 interface TimeSelectProps {
   value: string
@@ -32,10 +44,12 @@ interface TimeSelectProps {
 
 /**
  * 시각 고르기. 기기마다 모양이 다른 기본 시각 입력 대신, 오전부터 차례로 나오는 목록에서 고릅니다.
- * 목록에 없는 시각(예전에 적은 16:45 등)도 그대로 보여줍니다.
+ * 목록은 설정의 시각 단위(처음 값은 정각)를 따릅니다. 목록에 없는 시각(예전에 적은 16:50 등)도 그대로 보여줍니다.
  */
 export default function TimeSelect({ value, onChange, label, id, disabled }: TimeSelectProps) {
-  const times = value && !TIMES.includes(value) ? [...TIMES, value].sort() : TIMES
+  const { settings } = useSettings()
+  const options = timeOptions(settings.timeStep)
+  const times = value && !options.includes(value) ? [...options, value].sort() : options
   return (
     <select id={id} className="input time-select" value={value} aria-label={label} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
       {times.map((time) => (

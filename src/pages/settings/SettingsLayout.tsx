@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useMatch } from 'react-router'
 import Empty from '../../components/Empty'
-import { AttendanceIcon, BackupIcon, ChevronRightIcon, DatabaseIcon, MessageIcon, RosterIcon, SlidersIcon } from '../../components/icons'
+import { AttendanceIcon, BackupIcon, ChevronRightIcon, DatabaseIcon, RosterIcon, SlidersIcon } from '../../components/icons'
 import { useData } from '../../data/DataProvider'
 import { BILLING_LABELS } from '../../data/rules'
 import { studentStatus } from '../../data/schedule'
@@ -12,6 +12,7 @@ import { APP_NAME, Logo } from '../../layout/AppShell'
 import SplitView from '../../layout/SplitView'
 import { formatDate, today } from '../../utils/date'
 import { lastBackupDate } from './BackupPage'
+import { lengthLabel } from '../../components/TimeSelect'
 
 /** 설정: 왼쪽(좁은 화면은 첫 화면) 메뉴 + 누르면 들어가는 화면 */
 export default function SettingsLayout() {
@@ -66,7 +67,7 @@ function SettingsMenu() {
     {
       to: '/settings/defaults',
       title: '수업 기본값',
-      sub: `${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]} · ${settings.lessonStart}부터 ${settings.lessonMinutes}분`,
+      sub: `${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]} · ${settings.lessonStart}부터 ${lengthLabel(settings.lessonMinutes)}${settings.timeStep === 60 ? ' · 정각' : ''}`,
       icon: <SlidersIcon />,
     },
     {
@@ -74,12 +75,6 @@ function SettingsMenu() {
       title: '출결·보강',
       sub: `${COUNTING_SHORT[settings.absenceCounting]} · ${makeupTargets ? `${makeupTargets} 보강` : '보강 없음'} · ${window.type === 'none' ? '기한 없음' : '기한 있음'}`,
       icon: <AttendanceIcon />,
-    },
-    {
-      to: '/settings/messages',
-      title: '안내 문구',
-      sub: '수강료, 결석, 보강을 알릴 때 복사하는 문구',
-      icon: <MessageIcon />,
     },
   ]
   const people: MenuItem[] = [

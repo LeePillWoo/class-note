@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { canApplyStatus, earliestStatusDate, studentsRemovalChanges, withStatus } from './students'
+import { lessonLengths, snapLength, snapTime } from './settings'
 import { monthlyPaidTotals } from './tuition'
 import type { Database, Payment, Student } from './types'
 
@@ -71,5 +72,23 @@ describe('monthlyPaidTotals', () => {
     const paid = (paidOn: string | undefined, amount: number) => ({ paidOn, amount }) as Payment
     const payments = [paid('2026-11-03', 100), paid('2026-11-20', 50), paid('2026-09-01', 30), paid(undefined, 999), paid('2026-05-01', 7)]
     expect(monthlyPaidTotals(payments, ['2026-09', '2026-10', '2026-11'])).toEqual([30, 0, 150])
+  })
+})
+
+describe('시각 단위', () => {
+  it('정각 단위: 시각은 정각으로 내리고, 수업 시간은 시간 단위로 올림', () => {
+    expect(snapTime('16:30', 60)).toBe('16:00')
+    expect(snapTime('16:00', 60)).toBe('16:00')
+    expect(snapLength(50, 60)).toBe(60)
+    expect(snapLength(90, 60)).toBe(120)
+    expect(lessonLengths(60)).toEqual([60, 120, 180])
+  })
+
+  it('30분·10분 단위', () => {
+    expect(snapTime('16:40', 30)).toBe('16:30')
+    expect(snapLength(40, 30)).toBe(60)
+    expect(snapTime('16:45', 10)).toBe('16:40')
+    expect(snapLength(45, 10)).toBe(50)
+    expect(lessonLengths(30).every((minutes) => minutes % 30 === 0)).toBe(true)
   })
 })

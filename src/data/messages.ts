@@ -11,18 +11,11 @@ export const MESSAGE_LABELS: Record<MessageKind, string> = {
   makeup: '보강 안내',
 }
 
-/** 문구에 넣을 수 있는 칸. 보낼 때 {이름}처럼 적은 자리가 실제 값으로 바뀝니다. */
+/** 문구에 쓰는 칸. 보낼 때 {이름}처럼 적은 자리가 실제 값으로 바뀝니다. */
 export const MESSAGE_FIELDS: Record<MessageKind, string[]> = {
   due: ['이름', '수업', '횟수', '금액', '날짜'],
   absent: ['이름', '수업', '날짜'],
   makeup: ['이름', '수업', '빠진날', '날짜', '시각'],
-}
-
-/** 어디에서 쓰는 문구인지 (설정 화면의 설명) */
-export const MESSAGE_HINTS: Record<MessageKind, string> = {
-  due: '수강료를 받는 창에서 복사해요',
-  absent: '출석부에서 결석으로 체크한 학생 줄에서 복사해요',
-  makeup: '보강 날짜를 잡는 창에서 복사해요',
 }
 
 const ACADEMY = '마녀의 우쿨렐레 & 칼림바'

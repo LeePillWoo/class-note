@@ -11,7 +11,6 @@ import MakeupsPage from './pages/MakeupsPage'
 import PaymentsPage from './pages/PaymentsPage'
 import BackupPage from './pages/settings/BackupPage'
 import DataPage from './pages/settings/DataPage'
-import MessagesPage from './pages/settings/MessagesPage'
 import { AttendanceSettingsPage, LessonDefaultsPage } from './pages/settings/RulePages'
 import StudentsPage from './pages/settings/StudentsPage'
 import SettingsLayout, { SettingsIndex } from './pages/settings/SettingsLayout'
@@ -39,7 +38,6 @@ export default function App() {
           <Route index element={<SettingsIndex />} />
           <Route path="defaults" element={<LessonDefaultsPage />} />
           <Route path="attendance" element={<AttendanceSettingsPage />} />
-          <Route path="messages" element={<MessagesPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="backup" element={<BackupPage />} />
           <Route path="data" element={<DataPage />} />

@@ -74,13 +74,13 @@ export function buildSampleDatabase(todayStr: DateStr, makeId: () => string, now
     updatedAt: now,
   })
   const slot = (weekday: Weekday, start: string, end: string): TimeSlot => ({ weekday, start, end })
-  const beginner = makeClass(0, 'group', '우쿨렐레 초급반', '우쿨렐레', [slot(1, '16:00', '16:50'), slot(3, '16:00', '16:50')], 8, 160_000)
-  const kalimba = makeClass(1, 'group', '칼림바 취미반', '칼림바', [slot(2, '19:00', '19:50'), slot(4, '19:00', '19:50')], 8, 140_000)
+  const beginner = makeClass(0, 'group', '우쿨렐레 초급반', '우쿨렐레', [slot(1, '16:00', '17:00'), slot(3, '16:00', '17:00')], 8, 160_000)
+  const kalimba = makeClass(1, 'group', '칼림바 취미반', '칼림바', [slot(2, '19:00', '20:00'), slot(4, '19:00', '20:00')], 8, 140_000)
   const saturday = makeClass(2, 'group', '우쿨렐레 토요반', '우쿨렐레', [slot(6, '11:00', '12:00')], 4, 90_000)
   // 예시를 넣는 날에 수업이 하나는 있도록, 이서윤 1:1 레슨은 오늘 요일로 잡습니다.
-  const seoyun = makeClass(3, 'solo', '이서윤', '우쿨렐레', [slot(todayWeekday, '17:00', '17:40')], 4, 120_000)
+  const seoyun = makeClass(3, 'solo', '이서윤', '우쿨렐레', [slot(todayWeekday, '17:00', '18:00')], 4, 120_000)
   // 후납 예시: 수업을 다 들은 날 받습니다.
-  const minseo = makeClass(4, 'solo', '정민서', '칼림바', [slot(5, '18:00', '18:40')], 4, 120_000, 'postpaid')
+  const minseo = makeClass(4, 'solo', '정민서', '칼림바', [slot(5, '18:00', '19:00')], 4, 120_000, 'postpaid')
   const classes = [beginner, kalimba, saturday, seoyun, minseo]
   apply(classes.map((item): Change => ({ type: 'put', collection: 'classes', item })))
 
@@ -138,14 +138,14 @@ export function buildSampleDatabase(todayStr: DateStr, makeId: () => string, now
     if (makeup) apply([{ type: 'put', collection: 'makeups', item: { ...withPlan(makeup, plan), status, updatedAt: now } }])
   }
   // 최예린: 모레 따로 시간을 잡음 (예정) / 박지호: 아직 날짜를 못 잡음 (대기)
-  editMakeup(beginner, beginnerDates[4], '최예린', { date: addDays(todayStr, 2), start: '17:00', end: '17:50' }, 'open')
+  editMakeup(beginner, beginnerDates[4], '최예린', { date: addDays(todayStr, 2), start: '17:00', end: '18:00' }, 'open')
   // 강도윤: 빠진 주 토요일에 토요반 수업을 같이 듣고 끝냄 (완료)
   if (beginnerDates[7]) {
     const joinOn = classLessons(saturday, beginnerDates[7], yesterday)[0]
     if (joinOn) editMakeup(beginner, beginnerDates[7], '강도윤', { date: joinOn.date, start: joinOn.start, end: joinOn.end, joinClassId: saturday.id }, 'done')
   }
   // 칼림바 휴강: 윤지아만 며칠 뒤 보강을 마침, 나머지는 대기 (한 번에 잡기 예시)
-  if (cancelledOn) editMakeup(kalimba, cancelledOn, '윤지아', { date: addDays(cancelledOn, 3), start: '18:00', end: '18:50' }, 'done')
+  if (cancelledOn) editMakeup(kalimba, cancelledOn, '윤지아', { date: addDays(cancelledOn, 3), start: '18:00', end: '19:00' }, 'done')
 
   // ===== 납부 =====
   const methods: PaymentMethod[] = ['card', 'transfer', 'cash']

@@ -10,7 +10,7 @@ test('1:1 레슨: 학생과 수업을 한 번에 등록, 1회 금액 표시, 출
   await expect(page.locator('.per-session')).toContainText('1회 3만 원')
   await shot(page, testInfo, 'crud-1-solo-form')
 
-  await addSolo(page, '홍길동', { birthYear: '2016', start: '15:00', end: '15:50', count: '4', amount: '120000' })
+  await addSolo(page, '홍길동', { birthYear: '2016', start: '15:00', end: '16:00', count: '4', amount: '120000' })
   await expect(page.getByText('2016년생 · 1:1 레슨')).toBeVisible()
   await expect(page.locator('.lesson-fee').first()).toContainText('받기 전')
   await expect(page.locator('.lesson-fee').first()).toContainText('1회 3만 원')
@@ -42,23 +42,47 @@ test('1:1 레슨: 학생과 수업을 한 번에 등록, 1회 금액 표시, 출
   await expect(page.getByRole('heading', { name: '아직 수업이 없어요' })).toBeVisible()
 })
 
-test('시각 고르기: 오전이 먼저, 시작을 고르면 끝은 1시간 뒤로 자동, 끝은 그 뒤에 따로 고침', async ({ page }) => {
+test('시각 고르기: 처음에는 정각만, 시작을 고르면 끝은 1시간 뒤로 자동, 설정에서 30분·10분 단위로 바꿈', async ({ page }) => {
   await page.goto('/#/lessons/new/solo')
   await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '화', exact: true }).click()
   const start = page.getByLabel('수업 화요일 시작 시각')
   const end = page.getByLabel('수업 화요일 끝 시각')
-  // 목록은 오전부터
+  // 처음 값: 오후 4시부터 1시간
+  await expect(start).toHaveValue('16:00')
+  await expect(end).toHaveValue('17:00')
+  // 목록은 오전부터, 정각만
   const labels = await start.locator('option').allTextContents()
   expect(labels[0]).toBe('오전 6:00')
-  expect(labels.findIndex((label) => label.startsWith('오후'))).toBeGreaterThan(labels.findIndex((label) => label === '오전 11:50'))
+  expect(labels.every((label) => label.endsWith(':00'))).toBe(true)
+  expect(labels.findIndex((label) => label.startsWith('오후'))).toBeGreaterThan(labels.findIndex((label) => label === '오전 11:00'))
+  await start.selectOption('10:00')
+  await expect(end).toHaveValue('11:00')
+  await expect(end.locator('option:checked')).toHaveText('오전 11:00')
+  // 끝 시각은 따로 고침 (2시간 수업)
+  await end.selectOption('12:00')
+  await expect(start).toHaveValue('10:00')
+
+  // 설정에서 30분 단위로 바꾸면 30분마다 고름
+  await page.goto('/#/settings/defaults')
+  // 바꾸면 저장한 뒤에 골라진 것으로 보입니다.
+  await page.getByRole('radiogroup', { name: '시각 단위' }).getByRole('radio', { name: '30분' }).click()
+  await expect(page.getByRole('radiogroup', { name: '시각 단위' }).getByRole('radio', { name: '30분' })).toBeChecked()
+  await expect(page.getByLabel('수업 시간').locator('option')).toHaveText(['30분', '1시간', '1시간 30분', '2시간', '2시간 30분', '3시간'])
+  await page.goto('/#/lessons/new/solo')
+  await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '화', exact: true }).click()
   await start.selectOption('10:30')
   await expect(end).toHaveValue('11:30')
-  await expect(end.locator('option:checked')).toHaveText('오전 11:30')
-  await start.selectOption('14:00')
-  await expect(end).toHaveValue('15:00')
-  await end.selectOption('14:50')
-  await expect(end).toHaveValue('14:50')
-  await expect(start).toHaveValue('14:00')
+  expect(await start.locator('option').allTextContents()).not.toContain('오전 10:10')
+
+  // 10분 단위
+  await page.goto('/#/settings/defaults')
+  // 바꾸면 저장한 뒤에 골라진 것으로 보입니다.
+  await page.getByRole('radiogroup', { name: '시각 단위' }).getByRole('radio', { name: '10분' }).click()
+  await expect(page.getByRole('radiogroup', { name: '시각 단위' }).getByRole('radio', { name: '10분' })).toBeChecked()
+  await page.goto('/#/lessons/new/solo')
+  await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '화', exact: true }).click()
+  await start.selectOption('10:10')
+  await expect(end).toHaveValue('11:10')
 })
 
 test('그룹 수업: 만들면서 새 학생을 적고, 나중에 학생 추가, 학생마다 수강료 규칙', async ({ page }) => {
@@ -111,9 +135,9 @@ test('입력 확인: 이름과 요일이 없으면 저장되지 않음', async (
 test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸면 새 수업에 쓰임', async ({ page }) => {
   await page.goto('/#/settings')
   const menu = page.getByRole('list', { name: '기본 규칙' })
-  await expect(menu.getByRole('link')).toHaveCount(3)
+  await expect(menu.getByRole('link')).toHaveCount(2)
   // 메뉴에 지금 값이 요약되어 보임 (사용자와 정한 처음 값)
-  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('4회 · 선납 · 카드 · 16:00부터 60분')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('4회 · 선납 · 카드 · 16:00부터 1시간 · 정각')
   await expect(menu.getByRole('link', { name: /출결·보강/ })).toContainText('기한 없음')
 
   await menu.getByRole('link', { name: /출결·보강/ }).click()
@@ -131,10 +155,10 @@ test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸�
   // 수업 시간도 같은 화면에서 정함. 처음 값은 1시간 수업
   await expect(page.getByLabel('수업 시간')).toHaveValue('60')
   await page.getByLabel('시작 시각').selectOption('15:00')
-  await page.getByLabel('수업 시간').selectOption('40')
-  await expect(page.getByLabel('수업 시간')).toHaveValue('40')
+  await page.getByLabel('수업 시간').selectOption('120')
+  await expect(page.getByLabel('수업 시간')).toHaveValue('120')
   await page.goto('/#/settings')
-  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('8회 · 후납 · 카드 · 15:00부터 40분')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('8회 · 후납 · 카드 · 15:00부터 2시간 · 정각')
 
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '수업' }).click()
   await page.getByRole('link', { name: '1:1 레슨' }).first().click()
@@ -142,7 +166,7 @@ test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸�
   await expect(page.getByRole('radio', { name: '후납' })).toBeChecked()
   await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '월', exact: true }).click()
   await expect(page.getByLabel('수업 월요일 시작 시각')).toHaveValue('15:00')
-  await expect(page.getByLabel('수업 월요일 끝 시각')).toHaveValue('15:40')
+  await expect(page.getByLabel('수업 월요일 끝 시각')).toHaveValue('17:00')
 })
 
 test('화면 크기가 바뀌어도 적던 내용과 보던 화면이 그대로', async ({ page }, testInfo) => {
@@ -162,24 +186,24 @@ test('일정 겹침: 다른 수업과 시간이 겹치면 바로 알려주고, �
   await loadSample(page)
   await page.goto('/#/lessons/new/solo')
   await page.getByLabel('이름', { exact: true }).fill('겹침학생')
-  // 월요일 16:30 → 우쿨렐레 초급반(월 16:00~16:50)과 겹침
+  // 월요일 16:00 → 우쿨렐레 초급반(월 16:00~17:00)과 겹침
   await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '월', exact: true }).click()
-  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:30')
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:00')
   const warning = page.getByRole('list', { name: '겹치는 수업' })
-  await expect(warning).toHaveText(/월 16:00~16:50 우쿨렐레 초급반/)
+  await expect(warning).toHaveText(/월 16:00~17:00 우쿨렐레 초급반/)
   await expectNoHorizontalOverflow(page)
   await shot(page, testInfo, 'crud-2-conflict')
 
   // 저장할 때 물어보고, 취소하면 그대로 남음
   page.once('dialog', (dialog) => {
-    expect(dialog.message()).toContain('월 16:00~16:50 우쿨렐레 초급반')
+    expect(dialog.message()).toContain('월 16:00~17:00 우쿨렐레 초급반')
     void dialog.dismiss()
   })
   await page.getByRole('button', { name: '저장' }).click()
   await expect(page.getByRole('heading', { name: '1:1 레슨 등록', level: 1 })).toBeVisible()
 
-  // 끝난 뒤(16:50)로 옮기면 겹치지 않음
-  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:50')
+  // 끝난 뒤(17:00)로 옮기면 겹치지 않음 (맞닿기만 함)
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('17:00')
   await expect(warning).toHaveCount(0)
 
   // 다시 겹치게 하고 '확인'을 누르면 저장됨

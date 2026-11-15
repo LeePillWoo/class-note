@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useSettings } from '../data/settings'
-import { MESSAGE_LABELS, fillMessage, type MessageKind } from '../data/messages'
+import { MESSAGE_LABELS, defaultMessages, fillMessage, type MessageKind } from '../data/messages'
 import { copyText } from '../utils/clipboard'
 import { CheckIcon, CopyIcon } from './icons'
 
@@ -19,11 +18,10 @@ function dial(phone: string): string {
   return phone.replace(/[^\d+]/g, '')
 }
 
-/** 보호자 안내 문구: 설정에서 정한 문구에 이 학생의 값을 채워 보여주고, 복사하거나 문자 앱으로 넘깁니다. */
+/** 보호자 안내 문구: 정해 둔 문구에 이 학생의 값을 채워 보여주고, 복사하거나 문자 앱으로 넘깁니다. */
 export default function MessageActions({ kind, values, phone, compact }: MessageActionsProps) {
-  const { settings } = useSettings()
   const [copied, setCopied] = useState<'done' | 'failed' | null>(null)
-  const text = fillMessage(settings.messages[kind], values)
+  const text = fillMessage(defaultMessages()[kind], values)
 
   useEffect(() => {
     if (!copied) return
