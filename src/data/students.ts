@@ -1,21 +1,38 @@
 import { useMemo } from 'react'
-import { addDays, today, type DateStr } from '../utils/date'
+import { addDays, type DateStr } from '../utils/date'
 import { studentRemovalChanges } from './cascade'
 import { useData } from './DataProvider'
 import { newId, nowIso } from './id'
 import { compareStudents } from './schedule'
 import type { Change, Enrollment, Guardian, PauseRange, Student } from './types'
 
-/** 학생을 저장할 때 화면에서 넘기는 내용 (id가 없으면 새 학생) */
-export interface StudentInput {
-  id?: string
+/** 학생 정보 입력 (화면에서 넘기는 내용) */
+export interface StudentFields {
   name: string
   color: string
-  school: string
+  photo?: string
+  birthYear?: number
   phone: string
   guardians: Guardian[]
   enrolledOn: DateStr
   memo: string
+}
+
+/** 학생 기록 하나를 만듭니다. 고치는 경우 쉰 기간과 그만둔 날은 그대로 둡니다. */
+export function studentRecord(fields: StudentFields, existing: Student | undefined, now: string): Student {
+  // 사진과 출생 연도는 지울 수 있게, 넘겨받은 값으로만 정합니다.
+  const { photo: _photo, birthYear: _birthYear, ...kept }: Partial<Student> = existing ?? {}
+  const { photo, birthYear, ...rest } = fields
+  return {
+    pauses: [],
+    ...kept,
+    ...rest,
+    ...(photo ? { photo } : {}),
+    ...(birthYear ? { birthYear } : {}),
+    id: existing?.id ?? newId(),
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  }
 }
 
 /** 새 수강 기록 하나 */
@@ -44,37 +61,43 @@ export function pausesAfterRejoin(pauses: PauseRange[], leftOn: DateStr, backOn:
   return from <= to ? [...pauses, { from, to }] : pauses
 }
 
+/** 예: 2015 → '2015년생'. 없으면 빈 글자 */
+export function describeBirthYear(birthYear?: number): string {
+  return birthYear ? `${birthYear}년생` : ''
+}
+
 /** 학생 목록(이름 순서)과 학생을 바꾸는 기능 */
 export function useStudents() {
   const { data, apply } = useData()
   const students = useMemo(() => [...data.students].sort(compareStudents), [data.students])
 
-  /** 학생을 저장합니다. 새 학생이면 고른 반에 오늘부터 넣습니다. */
-  async function saveStudent(input: StudentInput, classIds: string[] = []): Promise<Student> {
+  /** 학생 정보를 저장합니다. 이 학생의 1:1 레슨 이름과 색도 함께 맞춥니다. */
+  async function saveStudent(fields: StudentFields, id?: string): Promise<Student> {
     const now = nowIso()
-    const existing = input.id ? data.students.find((student) => student.id === input.id) : undefined
-    const { id: _id, ...fields } = input
-    const item: Student = {
-      pauses: [],
-      ...existing,
-      ...fields,
-      id: existing?.id ?? newId(),
-      createdAt: existing?.createdAt ?? now,
-      updatedAt: now,
-    }
+    const existing = id ? data.students.find((student) => student.id === id) : undefined
+    const item = studentRecord(fields, existing, now)
     const changes: Change[] = [{ type: 'put', collection: 'students', item }]
-    if (!existing) {
-      for (const classId of classIds) {
-        changes.push({ type: 'put', collection: 'enrollments', item: newEnrollment(classId, item.id, today(), now) })
+    const soloIds = new Set(data.enrollments.filter((enrollment) => enrollment.studentId === item.id).map((enrollment) => enrollment.classId))
+    for (const cls of data.classes) {
+      if (cls.kind === 'solo' && soloIds.has(cls.id) && (cls.name !== item.name || cls.color !== item.color)) {
+        changes.push({ type: 'put', collection: 'classes', item: { ...cls, name: item.name, color: item.color, updatedAt: now } })
       }
     }
     await apply(changes)
     return item
   }
 
-  /** 학생을 지우면 그 학생의 수강, 출결, 보강, 납부 기록도 함께 지웁니다. */
+  /** 학생을 지우면 그 학생의 수강, 출결, 보강, 납부 기록과 1:1 레슨도 함께 지웁니다. */
   async function removeStudent(id: string) {
-    await apply(studentRemovalChanges(data, id))
+    const soloIds = new Set(data.enrollments.filter((enrollment) => enrollment.studentId === id).map((enrollment) => enrollment.classId))
+    const solos = data.classes.filter((cls) => cls.kind === 'solo' && soloIds.has(cls.id))
+    await apply([
+      ...studentRemovalChanges(data, id),
+      ...solos.flatMap((cls): Change[] => [
+        ...data.lessonNotes.filter((note) => note.classId === cls.id).map((note): Change => ({ type: 'remove', collection: 'lessonNotes', id: note.id })),
+        { type: 'remove', collection: 'classes', id: cls.id },
+      ]),
+    ])
   }
 
   async function put(item: Student) {
@@ -111,3 +134,4 @@ export function useStudents() {
 
   return { students, saveStudent, removeStudent, pauseStudent, resumeStudent, leaveStudent, rejoinStudent }
 }
+

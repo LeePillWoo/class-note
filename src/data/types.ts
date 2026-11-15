@@ -25,9 +25,12 @@ export interface PauseRange {
 
 export interface Student extends BaseRecord {
   name: string
+  /** 사진이 없을 때 이름 동그라미의 색 */
   color: string
-  /** 학교와 학년, 또는 간단한 소개. 예: 한빛초 5학년, 성인 */
-  school: string
+  /** 얼굴 사진 (작게 줄인 JPEG data URL). 없으면 이름 첫 글자 */
+  photo?: string
+  /** 출생 연도. 예: 2015. 학교·학년 같은 것은 메모에 적습니다. */
+  birthYear?: number
   phone: string
   guardians: Guardian[]
   /** 등록일 (정보로만 씁니다. 수업은 반에 넣은 날부터 셉니다) */
@@ -65,6 +68,12 @@ export interface FeeRule {
   sessionCount: number
 }
 
+/** 수업 방식: 1:1 레슨, 여러 명이 듣는 그룹 수업 */
+export type LessonKind = 'solo' | 'group'
+
+/** 수강료를 받는 때: 선납(묶음의 첫 수업 날), 후납(묶음의 마지막 수업 날) */
+export type Billing = 'prepaid' | 'postpaid'
+
 /** 결석한 수업을 회차로 셀지 */
 export type AbsenceCounting = 'never' | 'always' | 'ifNoMakeup'
 
@@ -83,14 +92,16 @@ export interface MakeupRule {
   window: MakeupWindow
 }
 
-/** 반. 1:1 수업도 학생이 한 명인 반으로 다룹니다. */
+/**
+ * 수업. 1:1 레슨(solo)은 학생 한 명과 짝이 되고 이름은 그 학생 이름을 따릅니다.
+ * 그룹 수업(group)은 학생을 여럿 넣습니다.
+ */
 export interface ClassGroup extends BaseRecord {
+  kind: LessonKind
   name: string
   /** 과목. 예: 우쿨렐레, 칼림바 */
   subject: string
   color: string
-  /** 장소. 예: 1강의실 */
-  place: string
   memo: string
   order: number
   /** 반 시작일. 이날부터 수업일을 만듭니다. */
@@ -101,8 +112,7 @@ export interface ClassGroup extends BaseRecord {
   schedules: Period<TimeSlot[]>[]
   /** 기본 수강료 */
   fee: FeeRule
-  absenceCounting: AbsenceCounting
-  makeupRule: MakeupRule
+  billing: Billing
 }
 
 /** 수강: 어느 학생이 어느 반을 언제부터 듣는지 */
@@ -173,8 +183,8 @@ export interface Makeup extends BaseRecord {
 /** 수강료, 교재비, 특강비, 기타 */
 export type PaymentKind = 'tuition' | 'textbook' | 'special' | 'other'
 
-/** 이체, 카드, 현금, 기타 */
-export type PaymentMethod = 'transfer' | 'card' | 'cash' | 'other'
+/** 카드, 이체, 현금, 기타 */
+export type PaymentMethod = 'card' | 'transfer' | 'cash' | 'other'
 
 /**
  * 납부 기록.
@@ -199,6 +209,24 @@ export interface Payment extends BaseRecord {
   memo: string
 }
 
+// ===== 설정 =====
+
+/** 앱 전체의 기본 규칙. 기록 하나(id 'app')만 둡니다. (settings.ts) */
+export interface AppSettings extends BaseRecord {
+  /** 새 수업의 수강료 기본 횟수 */
+  sessionCount: number
+  /** 새 수업의 납부 방식 기본값 */
+  billing: Billing
+  /** 결석한 수업을 회차로 셀지 (모든 수업에 적용) */
+  absenceCounting: AbsenceCounting
+  /** 보강 규칙 (모든 수업에 적용) */
+  makeupRule: MakeupRule
+  /** 납부 창에서 먼저 골라 둘 방법 */
+  method: PaymentMethod
+  /** 새 수업의 기본 수업 시간(분) */
+  lessonMinutes: number
+}
+
 /** 저장하는 데이터 종류입니다. 새 종류는 여기에 추가합니다. */
 export interface Collections {
   students: Student
@@ -208,6 +236,7 @@ export interface Collections {
   attendance: Attendance
   makeups: Makeup
   payments: Payment
+  settings: AppSettings
 }
 
 export type CollectionName = keyof Collections

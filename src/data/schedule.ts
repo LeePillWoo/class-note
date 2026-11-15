@@ -1,6 +1,7 @@
 import { addDays, weekdayOf, type DateStr, type TimeStr } from '../utils/date'
 import { periodAt } from './rules'
-import type { Attendance, ClassGroup, Database, Enrollment, LessonNote, Makeup, Payment, Student } from './types'
+import { settingsOf } from './settings'
+import type { AppSettings, Attendance, ClassGroup, Database, Enrollment, LessonNote, Makeup, Payment, Student } from './types'
 
 // ===== 기록을 찾는 열쇠 =====
 
@@ -28,6 +29,8 @@ export function pairKey(studentId: string, classId: string): string {
  */
 export interface DataIndex {
   db: Database
+  /** 기본 규칙 (보강, 결석 세는 방법 등) */
+  settings: AppSettings
   students: Map<string, Student>
   classes: Map<string, ClassGroup>
   enrollmentsByClass: Map<string, Enrollment[]>
@@ -64,6 +67,7 @@ export function buildIndex(db: Database): DataIndex {
   enrollmentsByStudent.forEach((list) => list.sort(byStart))
   return {
     db,
+    settings: settingsOf(db),
     students: new Map(db.students.map((item) => [item.id, item])),
     classes: new Map(db.classes.map((item) => [item.id, item])),
     enrollmentsByClass,

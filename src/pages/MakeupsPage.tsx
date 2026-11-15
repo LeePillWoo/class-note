@@ -15,7 +15,7 @@ interface CancelledGroup {
 
 /**
  * 보강: 날짜를 잡아야 하는 보강과 잡아 둔 보강을 급한 순서로 보여줍니다.
- * 휴강으로 생긴 보강은 반 학생들을 한 번에 같은 날로 잡을 수 있게 묶어 둡니다.
+ * 휴강으로 생긴 보강은 수업 학생들을 한 번에 같은 날로 잡을 수 있게 묶어 둡니다.
  */
 export default function MakeupsPage() {
   const { data, index } = useData()
@@ -55,20 +55,18 @@ export default function MakeupsPage() {
       <PageHeader title="보강" subtitle="결석이나 휴강을 적으면 여기에 보강이 생겨요." />
       {nothing ? (
         <div className="card narrow">
-          <p className="muted">아직 보강이 없어요. 출결에서 결석이나 휴강을 적으면 반 규칙에 따라 보강이 생겨요.</p>
+          <p className="muted">아직 보강이 없어요. 결석이나 휴강을 적으면 설정의 보강 규칙에 따라 보강이 생겨요</p>
         </div>
       ) : (
         <div className="duo">
           <div className="duo-cols">
             <div className="duo-col">
-              <div className="home-section">
-                <h2 className="section-heading">
-                  날짜를 잡아야 해요 <span className="muted">{pending.length + groups.reduce((sum, group) => sum + group.makeups.length, 0)}개</span>
+              <div className="block">
+                <h2 className="block-title">
+                  날짜를 잡아야 해요 <span className="count">{pending.length + groups.reduce((sum, group) => sum + group.makeups.length, 0)}</span>
                 </h2>
                 {pending.length + groups.length === 0 ? (
-                  <div className="card">
-                    <p className="muted">날짜를 기다리는 보강이 없어요.</p>
-                  </div>
+                  <p className="empty-line">날짜를 기다리는 보강이 없어요</p>
                 ) : (
                   <ul className="list" aria-label="날짜를 잡아야 하는 보강">
                     {groups.map((group) => {
@@ -100,14 +98,12 @@ export default function MakeupsPage() {
               </div>
             </div>
             <div className="duo-col">
-              <div className="home-section">
-                <h2 className="section-heading">
-                  잡아 둔 보강 <span className="muted">{scheduled.length}개</span>
+              <div className="block">
+                <h2 className="block-title">
+                  잡아 둔 보강 <span className="count">{scheduled.length}</span>
                 </h2>
                 {scheduled.length === 0 ? (
-                  <div className="card">
-                    <p className="muted">날짜를 잡아 둔 보강이 없어요.</p>
-                  </div>
+                  <p className="empty-line">날짜를 잡아 둔 보강이 없어요</p>
                 ) : (
                   <ul className="list" aria-label="잡아 둔 보강">
                     {scheduled.map((makeup) => (
@@ -119,7 +115,7 @@ export default function MakeupsPage() {
                 )}
               </div>
               {past.length > 0 && (
-                <details className="home-section">
+                <details className="block">
                   <summary className="summary muted">끝난 보강 {past.length}개 (완료, 안 함, 기한 지남)</summary>
                   <ul className="list" aria-label="끝난 보강">
                     {past.slice(0, 50).map((makeup) => (

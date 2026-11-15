@@ -1,39 +1,46 @@
 import type { CSSProperties, ReactNode } from 'react'
 import { useData } from '../data/DataProvider'
-import { describeFee } from '../data/rules'
+import { BILLING_LABELS, describeFee, perSessionText } from '../data/rules'
 import { MAKEUP_REASON_LABELS, MAKEUP_STATE_LABELS, describeDeadline, makeupState } from '../data/makeupRules'
-import { DUE_STATUS_LABELS, PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, bundleProgress, describeRemaining, type DueView, type TuitionState } from '../data/tuition'
-import type { Makeup, Payment } from '../data/types'
+import { DUE_STATUS_LABELS, PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, bundleProgress, describeRemaining, isBehind, type DueView, type TuitionState } from '../data/tuition'
+import type { ClassGroup, Makeup, Payment } from '../data/types'
 import { formatDate, today } from '../utils/date'
 import { formatFee } from '../utils/money'
 
-// 여러 화면(홈, 학생, 반, 보강, 납부)에서 같이 쓰는 목록 한 줄들
+// 여러 화면(홈, 학생, 수업, 보강, 납부)에서 같이 쓰는 목록 한 줄들
 
-/** 수강료 진행 한 줄: 남은 횟수와 막대, 다음 받을 날. 누르면 수강료를 받는 창이 열립니다. */
-export function TuitionRow({ state, label, onClick }: { state: TuitionState; label: ReactNode; onClick(): void }) {
+/** 목록에 보여줄 수업 이름: 그룹은 수업 이름, 1:1은 '1:1 레슨' */
+function lessonLabel(cls: ClassGroup): string {
+  return cls.kind === 'solo' ? '1:1 레슨' : cls.name
+}
+
+/** 수강료 진행 한 줄: 남은 횟수와 막대, 다음 받을 날. onClick이 있으면 누르는 줄(수강료 받기 창)이 됩니다. */
+export function TuitionRow({ state, label, onClick }: { state: TuitionState; label: ReactNode; onClick?(): void }) {
   const todayStr = today()
   const { filled, size } = bundleProgress(state)
-  const behind = state.remaining < 0
+  const behind = isBehind(state, todayStr)
   const next = state.dues[0]
   let when = ''
   if (next) {
-    if (next.dueOn < todayStr) when = `받을 날이 ${formatDate(next.dueOn)}이었어요`
-    else if (next.dueOn === todayStr) when = '오늘이 받을 날이에요'
+    if (next.dueOn < todayStr) when = `받을 날 ${formatDate(next.dueOn)} 지남`
+    else if (next.dueOn === todayStr) when = '오늘 받을 날'
     else when = `다음 받을 날 ${formatDate(next.dueOn)}`
   }
+  const per = perSessionText(state.fee)
+  const Tag = onClick ? 'button' : 'div'
   return (
-    <button type="button" className="tuition" onClick={onClick}>
+    <Tag {...(onClick ? { type: 'button' as const, onClick } : {})} className={onClick ? 'tuition is-button' : 'tuition'}>
       <span className="tuition-name">{label}</span>
       <span className={behind ? 'tuition-count is-behind' : 'tuition-count'}>{describeRemaining(state)}</span>
-      <span className={behind ? 'progress is-behind' : 'progress'} role="img" aria-label={`${size}회 중 ${filled}회 수업`}>
+      <span className={behind ? 'progress is-behind' : 'progress'} role="img" aria-label={`${size}회 중 ${filled}회`}>
         <span style={{ transform: `scaleX(${filled / size})` } as CSSProperties} />
       </span>
-      <span className="list-sub">
-        {describeFee(state.fee)}
-        {when && `, ${when}`}
-        {state.undecidedMakeups > 0 && ` (보강 ${state.undecidedMakeups}건에 따라 달라져요)`}
+      <span className="tuition-meta">
+        <span>{describeFee(state.fee)}{per && ` · ${per}`} · {BILLING_LABELS[state.billing]}</span>
+        {when && <span className={behind ? 'is-behind' : undefined}>{when}</span>}
       </span>
-    </button>
+      {state.undecidedMakeups > 0 && <span className="tuition-note">보강 {state.undecidedMakeups}건에 따라 달라져요</span>}
+    </Tag>
   )
 }
 
@@ -60,7 +67,7 @@ export function MakeupRow({ makeup, onClick, showStudent = true }: { makeup: Mak
       <span className="dot" style={{ background: cls?.color }} />
       <span className="list-text">
         <span className="list-title">
-          {showStudent ? student?.name : cls?.name} {showStudent && <span className="muted">{cls?.name}</span>}
+          {showStudent ? student?.name : cls && lessonLabel(cls)} {showStudent && cls && <span className="muted">{lessonLabel(cls)}</span>}
         </span>
         <span className="list-sub">{missed}분</span>
         <span className="list-sub">{plan}</span>
@@ -80,10 +87,18 @@ export function DueRow({ due, onClick, showStudent = true }: { due: DueView; onC
     <button type="button" className="list-row list-button" onClick={onClick}>
       <span className="dot" style={{ background: cls?.color ?? 'var(--color-border)' }} />
       <span className="list-text">
-        <span className="list-title">
-          {showStudent ? student?.name : cls?.name ?? what} {showStudent && cls && <span className="muted">{cls.name}</span>}
-        </span>
-        <span className="list-sub">{what}</span>
+        {showStudent ? (
+          <>
+            <span className="list-title">
+              {student?.name} {cls && <span className="muted">{lessonLabel(cls)}</span>}
+            </span>
+            <span className="list-sub">{what}</span>
+          </>
+        ) : (
+          <span className="list-title">
+            {what} {cls?.kind === 'group' && <span className="muted">{cls.name}</span>}
+          </span>
+        )}
         <span className="list-sub">{formatDate(due.dueOn)}</span>
       </span>
       <span className="amount-col">
@@ -104,10 +119,18 @@ export function PaidRow({ payment, onClick, showStudent = true }: { payment: Pay
     <button type="button" className="list-row list-button" onClick={onClick}>
       <span className="dot" style={{ background: cls?.color ?? 'var(--color-border)' }} />
       <span className="list-text">
-        <span className="list-title">
-          {showStudent ? student?.name : cls?.name ?? what} {showStudent && cls && <span className="muted">{cls.name}</span>}
-        </span>
-        <span className="list-sub">{what}</span>
+        {showStudent ? (
+          <>
+            <span className="list-title">
+              {student?.name} {cls && <span className="muted">{lessonLabel(cls)}</span>}
+            </span>
+            <span className="list-sub">{what}</span>
+          </>
+        ) : (
+          <span className="list-title">
+            {what} {cls?.kind === 'group' && <span className="muted">{cls.name}</span>}
+          </span>
+        )}
         <span className="list-sub">
           {payment.paidOn && formatDate(payment.paidOn)}
           {payment.method && `, ${PAYMENT_METHOD_LABELS[payment.method]}`}

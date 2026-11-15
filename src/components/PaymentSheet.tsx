@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useData } from '../data/DataProvider'
+import { settingsOf } from '../data/settings'
 import { lastMethod, latestPaid, rememberMethod, usePayments } from '../data/payments'
 import { describeFee } from '../data/rules'
 import { PAYMENT_KIND_LABELS, PAYMENT_METHOD_LABELS, describeRemaining, tuitionState, type DueView } from '../data/tuition'
@@ -60,7 +61,7 @@ function useRun(onDone: () => void) {
       await action()
       onDone()
     } catch {
-      setError('저장하지 못했어요. 다시 시도해 주세요.')
+      setError('저장하지 못했어요. 다시 시도해 주세요')
       setBusy(false)
     }
   }
@@ -80,7 +81,7 @@ function TuitionEditor({ target, onDone }: { target: Extract<PaymentTarget, { ty
   const [sessionsText, setSessionsText] = useState(String(fee.sessionCount))
   const [amountText, setAmountText] = useState(fee.amount ? formatNumber(fee.amount) : '')
   const [paidOn, setPaidOn] = useState<DateStr>(todayStr)
-  const [method, setMethod] = useState<PaymentMethod>(latestPaid(data.payments, target.studentId)?.method ?? lastMethod())
+  const [method, setMethod] = useState<PaymentMethod>(latestPaid(data.payments, target.studentId)?.method ?? lastMethod(settingsOf(data).method))
   const [memo, setMemo] = useState('')
 
   if (!student || !cls || !state) return null
@@ -180,7 +181,7 @@ function RecordEditor({ payment, onDone }: { payment: Payment; onDone(): void })
   const [sessionsText, setSessionsText] = useState(String(payment.sessions ?? ''))
   const [amountText, setAmountText] = useState(payment.amount ? formatNumber(payment.amount) : '')
   const [paidOn, setPaidOn] = useState<DateStr>(payment.paidOn ?? today())
-  const [method, setMethod] = useState<PaymentMethod>(payment.method ?? lastMethod())
+  const [method, setMethod] = useState<PaymentMethod>(payment.method ?? lastMethod(settingsOf(index.db).method))
   const [memo, setMemo] = useState(payment.memo)
 
   const sessions = Number(sessionsText)
@@ -342,7 +343,7 @@ function ExtraEditor({ studentId, onDone }: { studentId?: string; onDone(): void
                 amount,
                 dueOn,
                 memo: memo.trim(),
-                paid: received ? { paidOn: dueOn, method: lastMethod() } : undefined,
+                paid: received ? { paidOn: dueOn, method: lastMethod(settingsOf(data).method) } : undefined,
               }),
             )
           }>

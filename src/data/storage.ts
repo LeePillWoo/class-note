@@ -21,6 +21,7 @@ export function emptyDatabase(): Database {
     attendance: [],
     makeups: [],
     payments: [],
+    settings: [],
   }
 }
 

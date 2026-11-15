@@ -5,14 +5,9 @@ import { defineConfig } from '@playwright/test'
 const PORT = 5198
 
 const phone = { deviceScaleFactor: 2, isMobile: true, hasTouch: true }
-// 화면 배치만 확인하는 크기: 배치 테스트(layout.spec.ts)만 돌립니다. 기능 테스트는 대표 크기 세 가지에서 돌립니다.
+// 화면 배치만 확인하는 크기: 배치 테스트(layout.spec.ts)만 돌립니다. 기능 테스트는 폰-세로와 PC에서 돌립니다.
 const layoutOnly = /layout\.spec\.ts/
 
-/**
- * 화면 크기는 CSS 픽셀입니다. 폴드는 기기 설정(화면 확대/축소)에 따라 조금씩 달라져서, 브라우저 막대를 뺀 대략의 값입니다.
- * - 갤럭시 Z 폴드7: 접은 화면 6.5형 1080×2520(21:9), 펼친 화면 8.0형 1968×2184 (거의 정사각형)
- * - 갤럭시 Z 폴드8: 접은 화면 5.5형 1248×1972(10:16, 짧고 넓음), 펼친 화면 7.6형 2448×1848 (4:3, 가로로 넓음)
- */
 export default defineConfig({
   testDir: 'tests/e2e',
   outputDir: 'test-results',
@@ -40,16 +35,14 @@ export default defineConfig({
     },
   },
   projects: [
-    // 가장 좁은 경우: 글자를 크게 쓰는 설정의 접은 화면까지
     { name: '좁은-폰', testMatch: layoutOnly, use: { viewport: { width: 320, height: 640 }, ...phone } },
     { name: '폰-세로', use: { viewport: { width: 360, height: 780 }, ...phone } },
-    { name: '폴드7-접음', testMatch: layoutOnly, use: { viewport: { width: 412, height: 880 }, ...phone } },
-    { name: '폴드8-접음', testMatch: layoutOnly, use: { viewport: { width: 416, height: 580 }, ...phone } },
-    { name: '폴드7-펼침', use: { viewport: { width: 750, height: 790 }, ...phone } },
-    { name: '폴드8-펼침', testMatch: layoutOnly, use: { viewport: { width: 932, height: 620 }, ...phone } },
     { name: '폰-가로', testMatch: layoutOnly, use: { viewport: { width: 780, height: 360 }, ...phone } },
+    { name: '작은-태블릿', testMatch: layoutOnly, use: { viewport: { width: 750, height: 800 }, ...phone } },
     { name: '태블릿-세로', testMatch: layoutOnly, use: { viewport: { width: 800, height: 1280 }, ...phone } },
+    { name: '태블릿-가로', testMatch: layoutOnly, use: { viewport: { width: 1280, height: 800 }, ...phone } },
     { name: 'PC', use: { viewport: { width: 1366, height: 768 } } },
+    { name: '와이드', testMatch: layoutOnly, use: { viewport: { width: 1920, height: 1080 } } },
   ],
   webServer: {
     command: `npm run dev -- --port ${PORT} --strictPort`,

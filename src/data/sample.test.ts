@@ -41,7 +41,8 @@ describe('예시 데이터', () => {
     expectNoDanglingReferences(db)
     const index = buildIndex(db)
     expect(db.students).toHaveLength(8)
-    expect(db.classes).toHaveLength(4)
+    expect(db.classes).toHaveLength(5)
+    expect(db.classes.filter((cls) => cls.kind === 'solo')).toHaveLength(2)
 
     // 오늘 수업이 하나는 있음 (1:1 레슨)
     expect(dayLessons(index, today, today).length).toBeGreaterThanOrEqual(1)
@@ -80,7 +81,7 @@ describe('지우기', () => {
   it('반을 지우면 그 반의 기록이 모두 지워짐', () => {
     const target = db.classes.find((item) => item.name === '칼림바 취미반')!
     const next = applyChanges(db, classRemovalChanges(db, target.id))
-    expect(next.classes).toHaveLength(3)
+    expect(next.classes).toHaveLength(4)
     for (const name of ['enrollments', 'lessonNotes', 'attendance', 'makeups'] as const) {
       expect(next[name].some((record) => record.classId === target.id), name).toBe(false)
     }

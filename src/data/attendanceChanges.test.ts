@@ -5,19 +5,32 @@ import { defaultMakeupTime, makeupState, scheduleWarnings } from './makeupRules'
 import { withPlan } from './makeups'
 import { buildIndex, makeupId } from './schedule'
 import { makeClass, makeDatabase, makeEnrollment, makeStudent, NOW, run, slot } from './testkit'
+import type { SettingsValues } from './settings'
 import type { Database } from './types'
 
 const TODAY = '2026-11-15'
 
-function base(patch: Parameters<typeof makeClass>[2] = {}): Database {
+/** 보강 기한을 14일로 둔 기본 데이터 (rule로 보강 규칙을 바꿈) */
+function base(rule: Partial<SettingsValues['makeupRule']> = {}): Database {
   return makeDatabase({
     students: [makeStudent('가'), makeStudent('나'), makeStudent('다')],
-    classes: [makeClass('c', [slot(1), slot(3)], patch), makeClass('d', [slot(6, '11:00', '12:00')], { order: 1 })],
+    classes: [makeClass('c', [slot(1), slot(3)]), makeClass('d', [slot(6, '11:00', '12:00')], { order: 1 })],
     enrollments: [makeEnrollment('c', '가', '2026-11-01'), makeEnrollment('c', '나', '2026-11-01'), makeEnrollment('d', '다', '2026-11-01')],
+    settings: { makeupRule: { forAbsence: true, forCancellation: true, window: { type: 'days', days: 14 }, ...rule } },
   })
 }
 
 describe('출결과 보강', () => {
+  it('기본 규칙은 보강 기한 없음', () => {
+    const db = makeDatabase({
+      students: [makeStudent('가')],
+      classes: [makeClass('c', [slot(1)])],
+      enrollments: [makeEnrollment('c', '가', '2026-11-01')],
+    })
+    const next = run(db, (current) => setAttendanceChanges(current, 'c', '2026-11-09', '가', 'absent', NOW))
+    expect(next.makeups[0].deadline).toBeUndefined()
+  })
+
   it('결석을 적으면 보강이 생기고, 출석으로 바꾸면 없어짐', () => {
     let db = run(base(), (current) => setAttendanceChanges(current, 'c', '2026-11-09', '가', 'absent', NOW))
     expect(db.attendance).toHaveLength(1)
@@ -41,9 +54,9 @@ describe('출결과 보강', () => {
     expect(db.attendance).toHaveLength(0)
   })
 
-  it('결석 보강을 하지 않는 반은 보강이 생기지 않음', () => {
+  it('결석 보강을 하지 않도록 설정하면 보강이 생기지 않음', () => {
     const db = run(
-      base({ makeupRule: { forAbsence: false, forCancellation: true, window: { type: 'none' } } }),
+      base({ forAbsence: false }),
       (current) => setAttendanceChanges(current, 'c', '2026-11-09', '가', 'absent', NOW),
     )
     expect(db.makeups).toHaveLength(0)

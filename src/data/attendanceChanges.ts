@@ -6,19 +6,20 @@ import type { Attendance, AttendanceStatus, Change, Database, LessonNote, Makeup
 
 /**
  * 한 수업(반+날짜)의 출결이나 휴강이 바뀐 뒤 보강을 맞춥니다. index는 **바뀐 뒤**의 데이터입니다.
- * - 보강 대상(반 규칙에 맞는 결석, 휴강)이 되면 보강을 만듭니다.
+ * - 보강 대상(설정의 보강 규칙에 맞는 결석, 휴강)이 되면 보강을 만듭니다.
  * - 결석 ↔ 휴강으로 바뀌면 이유만 고칩니다. (잡아 둔 날짜는 그대로)
  * - 보강 대상이 아니게 되면 그 보강을 지웁니다.
  */
 export function makeupSyncChanges(index: DataIndex, classId: string, date: DateStr, now: string): Change[] {
   const cls = index.classes.get(classId)
   if (!cls) return []
+  const rule = index.settings.makeupRule
   const cancelled = index.notes.get(noteId(classId, date))?.cancelled ?? false
   const wanted = new Map<string, Makeup['reason']>()
   for (const { student } of rosterOn(index, classId, date)) {
     if (cancelled) {
-      if (cls.makeupRule.forCancellation) wanted.set(student.id, 'cancelled')
-    } else if (cls.makeupRule.forAbsence && index.attendance.get(attendanceId(classId, date, student.id))?.status === 'absent') {
+      if (rule.forCancellation) wanted.set(student.id, 'cancelled')
+    } else if (rule.forAbsence && index.attendance.get(attendanceId(classId, date, student.id))?.status === 'absent') {
       wanted.set(student.id, 'absent')
     }
   }
@@ -38,7 +39,7 @@ export function makeupSyncChanges(index: DataIndex, classId: string, date: DateS
       studentId,
       missedOn: date,
       reason,
-      deadline: makeupDeadline(cls.makeupRule, date),
+      deadline: makeupDeadline(rule, date),
       status: 'open',
       memo: '',
       createdAt: now,

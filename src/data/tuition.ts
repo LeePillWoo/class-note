@@ -1,7 +1,7 @@
 import { addDays, type DateStr } from '../utils/date'
 import { makeupState } from './makeupRules'
 import { compareStudents, isCurrentEnrollment, makeupId, pairKey, studentLessons, studentStatus, type DataIndex, type RollStatus } from './schedule'
-import type { AbsenceCounting, Enrollment, FeeRule, Makeup, Payment, PaymentKind, PaymentMethod } from './types'
+import type { AbsenceCounting, Billing, Enrollment, FeeRule, Makeup, Payment, PaymentKind, PaymentMethod } from './types'
 
 /**
  * 수강료는 **횟수로만** 받습니다. (예: 8회 24만 원)
@@ -9,7 +9,8 @@ import type { AbsenceCounting, Enrollment, FeeRule, Makeup, Payment, PaymentKind
  * 셈하는 방법은 횟수권과 같습니다.
  * - 수강료를 받으면 그 횟수만큼 "남은 횟수"가 채워집니다.
  * - 수업을 하면 한 번씩 줄어듭니다.
- * - 남은 횟수를 다 쓰면, 그다음 수업 날이 새 수강료를 받을 날입니다.
+ * - 선납: 남은 횟수를 다 쓰면, 그다음 수업 날이 새 수강료를 받을 날입니다. (묶음의 첫 수업 날)
+ * - 후납: 정한 횟수를 다 들은 날이 받을 날입니다. (묶음의 마지막 수업 날)
  *
  * 달에 수업이 다섯 번 있어도 따로 할 일이 없습니다. 다섯 번째 수업은 다음 묶음의 첫 회가 됩니다.
  */
@@ -62,10 +63,11 @@ export function sessionMarks(index: DataIndex, studentId: string, classId: strin
   const cls = index.classes.get(classId)
   const enrollments = pairEnrollments(index, studentId, classId)
   if (!cls || enrollments.length === 0) return []
+  const counting = index.settings.absenceCounting
   const marks: SessionMark[] = []
   for (const lesson of studentLessons(index, studentId, classId, enrollments[0].startedOn, until, todayStr)) {
     const makeup = index.makeups.get(makeupId(classId, lesson.date, studentId))
-    if (!countsAsSession(lesson.status, cls.absenceCounting, makeup, todayStr)) continue
+    if (!countsAsSession(lesson.status, counting, makeup, todayStr)) continue
     marks.push({
       date: lesson.date,
       kind: 'lesson',
@@ -75,7 +77,7 @@ export function sessionMarks(index: DataIndex, studentId: string, classId: strin
   for (const makeup of index.makeupsByStudent.get(studentId) ?? []) {
     if (makeup.classId !== classId || makeup.status !== 'done' || !makeup.scheduledOn || makeup.scheduledOn > until) continue
     // 결석도 세는 반은 결석한 날에 이미 셌으므로 그 보강은 다시 세지 않습니다. (휴강 보강은 셉니다)
-    if (cls.absenceCounting === 'always' && makeup.reason === 'absent') continue
+    if (counting === 'always' && makeup.reason === 'absent') continue
     marks.push({ date: makeup.scheduledOn, kind: 'makeup', used: makeup.scheduledOn <= todayStr })
   }
   return marks.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind))
@@ -94,7 +96,7 @@ export interface TuitionDue {
   key: string
   studentId: string
   classId: string
-  /** 받을 날: 남은 횟수를 다 쓴 뒤의 첫 수업 날 */
+  /** 받을 날: 선납은 묶음의 첫 수업 날, 후납은 묶음의 마지막 수업 날 */
   dueOn: DateStr
   sessions: number
   amount: number
@@ -105,6 +107,7 @@ export interface TuitionState {
   studentId: string
   classId: string
   fee: FeeRule
+  billing: Billing
   /** 받은 수강료로 채워진 횟수 (앱에 넣을 때 남아 있던 횟수 포함) */
   covered: number
   /** 오늘까지 한 수업 횟수 */
@@ -132,13 +135,15 @@ export function tuitionState(index: DataIndex, studentId: string, classId: strin
   const covered = enrollments.reduce((sum, item) => sum + item.startCredit, 0) + paid
   const used = marks.filter((mark) => mark.used).length
 
+  // 받을 날이 되는 수업: 선납은 묶음의 첫 회, 후납은 마지막 회
+  const offset = cls.billing === 'postpaid' ? size - 1 : 0
   const dues: TuitionDue[] = []
-  for (let position = covered; position < marks.length && dues.length < MAX_DUES; position += size) {
-    dues.push({ key: `${pairKey(studentId, classId)}|${position}`, studentId, classId, dueOn: marks[position].date, sessions: size, amount: fee.amount })
+  for (let position = covered; position + offset < marks.length && dues.length < MAX_DUES; position += size) {
+    dues.push({ key: `${pairKey(studentId, classId)}|${position}`, studentId, classId, dueOn: marks[position + offset].date, sessions: size, amount: fee.amount })
   }
 
   const undecidedMakeups =
-    cls.absenceCounting === 'ifNoMakeup'
+    index.settings.absenceCounting === 'ifNoMakeup'
       ? (index.makeupsByStudent.get(studentId) ?? []).filter((makeup) => {
           if (makeup.classId !== classId || makeup.reason !== 'absent') return false
           const state = makeupState(makeup, todayStr)
@@ -150,6 +155,7 @@ export function tuitionState(index: DataIndex, studentId: string, classId: strin
     studentId,
     classId,
     fee,
+    billing: cls.billing,
     covered,
     used,
     remaining: covered - used,
@@ -183,22 +189,43 @@ export function allTuitionStates(index: DataIndex, todayStr: DateStr): TuitionSt
 }
 
 /**
- * 지금 묶음에서 몇 회를 썼는지 (진행 막대용). 예: 8회 중 3회 남았으면 5/8
- * 남은 횟수가 없으면 꽉 찬 것으로(8/8), 여러 묶음을 미리 받았으면 지금 쓰는 묶음만 보여줍니다.
+ * 지금 묶음의 진행 (막대용)
+ * - 선납: 받은 묶음에서 몇 회를 썼는지. 예: 8회 중 3회 남았으면 5/8. 남은 횟수가 없으면 꽉 찬 것으로(8/8)
+ * - 후납: 아직 받지 않은 수업이 몇 회인지. 예: 3회 들었으면 3/8
  */
-export function bundleProgress(state: Pick<TuitionState, 'fee' | 'remaining' | 'covered'>): { filled: number; size: number } {
+export function bundleProgress(state: Pick<TuitionState, 'fee' | 'remaining' | 'covered' | 'billing'>): { filled: number; size: number } {
   const size = state.fee.sessionCount
+  if (state.billing === 'postpaid') {
+    const owed = -state.remaining
+    return { filled: owed <= 0 ? 0 : Math.min(owed, size), size }
+  }
   // 아직 받은 적도 수업한 적도 없는 새 학생은 빈 막대
   if (state.remaining === 0 && state.covered === 0) return { filled: 0, size }
   if (state.remaining <= 0) return { filled: size, size }
   return { filled: (size - (state.remaining % size)) % size, size }
 }
 
-/** 예: '3회 남음', '다 썼어요', '2회 밀림'. 아직 받은 적도 수업한 적도 없는 새 학생은 '받기 전' */
-export function describeRemaining(state: Pick<TuitionState, 'remaining' | 'covered'>): string {
+/**
+ * 남은 횟수를 한마디로
+ * - 선납: '3회 남음', '다 썼어요', '2회 밀림', 새 학생은 '받기 전'
+ * - 후납: '3/8회 들음', '8회 들음'(받을 때), '2회 미리 받음', 새 학생은 '수업 전'
+ */
+export function describeRemaining(state: Pick<TuitionState, 'remaining' | 'covered' | 'billing' | 'fee'>): string {
+  if (state.billing === 'postpaid') {
+    const owed = -state.remaining
+    if (owed < 0) return `${-owed}회 미리 받음`
+    if (owed === 0) return state.covered === 0 ? '수업 전' : '정산 끝'
+    if (owed < state.fee.sessionCount) return `${owed}/${state.fee.sessionCount}회 들음`
+    return `${owed}회 들음`
+  }
   if (state.remaining > 0) return `${state.remaining}회 남음`
   if (state.remaining === 0) return state.covered === 0 ? '받기 전' : '다 썼어요'
   return `${-state.remaining}회 밀림`
+}
+
+/** 받을 날이 지난 수강료가 있는지 (빨간색으로 보여줌) */
+export function isBehind(state: Pick<TuitionState, 'dues'>, todayStr: DateStr): boolean {
+  return state.dues.length > 0 && state.dues[0].dueOn < todayStr
 }
 
 // ===== 받을 돈 목록 =====
@@ -225,8 +252,8 @@ export const PAYMENT_KIND_LABELS: Record<PaymentKind, string> = {
 }
 
 export const PAYMENT_METHOD_LABELS: Record<PaymentMethod, string> = {
-  transfer: '이체',
   card: '카드',
+  transfer: '이체',
   cash: '현금',
   other: '기타',
 }

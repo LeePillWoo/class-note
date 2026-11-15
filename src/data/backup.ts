@@ -1,4 +1,5 @@
 import { today, type DateStr } from '../utils/date'
+import { normalizeDatabase } from './settings'
 import { allPutChanges, allRemovalChanges, collectionNames, emptyDatabase } from './storage'
 import type { BaseRecord, Change, CollectionName, Database } from './types'
 
@@ -78,7 +79,7 @@ export function parseBackup(text: string): { backup: BackupFile; summary: Backup
   }
 
   const exportedAt = typeof raw.exportedAt === 'string' ? raw.exportedAt : ''
-  return { backup: { app: BACKUP_APP, version, exportedAt, data }, summary: { exportedAt, counts, total } }
+  return { backup: { app: BACKUP_APP, version, exportedAt, data: normalizeDatabase(data) }, summary: { exportedAt, counts, total } }
 }
 
 /** 덮어쓰기: 지금 것을 모두 지우고 백업으로 바꿈 / 합치기: 백업에만 있거나 백업이 더 최신인 기록만 넣음 */
@@ -105,4 +106,5 @@ export const COLLECTION_LABELS: Record<CollectionName, string> = {
   attendance: '출결',
   makeups: '보강',
   payments: '납부',
+  settings: '기본 규칙',
 }

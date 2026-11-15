@@ -27,10 +27,10 @@ export async function shot(page: Page, testInfo: TestInfo, name: string, options
   await page.screenshot({ path: join(dir, `${name}.png`), fullPage: options.fullPage ?? false })
 }
 
-/** 지금 화면 크기에서 메뉴가 왼쪽에 있어야 하는지 (app.css의 규칙과 같음) */
+/** 지금 화면 크기에서 메뉴가 왼쪽에 있어야 하는지 (styles.css의 규칙과 같음) */
 export function expectsRail(page: Page): boolean {
   const size = page.viewportSize()!
-  return (size.width >= 600 && size.width / size.height >= 1.2) || size.width >= 1024
+  return size.width >= 768 || (size.width > size.height && size.width >= 600)
 }
 
 /** 요일 단추를 누릅니다. 예: toggleWeekdays(page, '수업', ['월', '수']) */
@@ -41,47 +41,50 @@ export async function toggleWeekdays(page: Page, label: string, days: string[]) 
 
 const ALL_DAYS = ['월', '화', '수', '목', '금', '토', '일']
 
-interface ClassOptions {
-  name: string
-  /** 수업 요일. 없으면 매일 (오늘과 어제가 항상 수업일이 되게) */
+interface LessonOptions {
+  /** 수업 요일. 없으면 매일 (오늘이 항상 수업일이 되게) */
   days?: string[]
   start?: string
   end?: string
-  /** 몇 회마다 (기본 4) */
+  /** 몇 회 (기본 4) */
   count?: string
-  /** 금액 (기본 100000) */
+  /** 수강료 (기본 100000) */
   amount?: string
-  /** 반 시작일을 지난달 1일로 (지난 수업이 있게) */
-  fromLastMonth?: boolean
+  /** 후납 */
+  postpaid?: boolean
 }
 
-/** 반을 만듭니다. 만든 뒤에는 그 반의 화면이 열려 있습니다. */
-export async function addClass(page: Page, options: ClassOptions) {
-  await page.goto('/#/classes/new')
-  await page.getByLabel('반 이름').fill(options.name)
+async function fillLesson(page: Page, options: LessonOptions) {
   const days = options.days ?? ALL_DAYS
   await toggleWeekdays(page, '수업', [days[0]])
   if (options.start) await page.getByLabel(`수업 ${days[0]}요일 시작 시각`).fill(options.start)
   if (options.end) await page.getByLabel(`수업 ${days[0]}요일 끝 시각`).fill(options.end)
   // 나머지 요일은 첫 요일의 시간을 그대로 따릅니다.
   await toggleWeekdays(page, '수업', days.slice(1))
-  if (options.fromLastMonth) {
-    await page.getByRole('button', { name: /^언제부터 수업하나요\?/ }).click()
-    const picker = page.getByRole('dialog', { name: '언제부터 수업하나요? 고르기' })
-    await picker.getByRole('button', { name: '이전 달' }).click()
-    await picker.getByRole('button', { name: /월 1일 \(/ }).click()
-  }
-  await page.getByLabel('몇 회마다 받나요?').fill(options.count ?? '4')
-  await page.getByLabel('금액 (선택)').fill(options.amount ?? '100000')
-  await page.getByRole('button', { name: '저장' }).click()
-  await expect(page.getByRole('heading', { name: options.name, level: 1 })).toBeVisible()
+  await page.getByLabel('횟수', { exact: true }).fill(options.count ?? '4')
+  await page.getByLabel('수강료', { exact: true }).fill(options.amount ?? '100000')
+  if (options.postpaid) await page.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
 }
 
-/** 학생을 추가합니다. classes에 적은 반에 오늘부터 넣습니다. 추가한 뒤에는 그 학생의 화면이 열려 있습니다. */
-export async function addStudent(page: Page, name: string, classes: string[] = []) {
-  await page.goto('/#/students/new')
-  await page.getByLabel('이름').fill(name)
-  for (const cls of classes) await page.getByRole('list', { name: '들을 반' }).getByText(cls, { exact: true }).click()
+/** 1:1 레슨을 등록합니다. 등록한 뒤에는 그 학생(레슨) 화면이 열려 있습니다. */
+export async function addSolo(page: Page, name: string, options: LessonOptions & { birthYear?: string } = {}) {
+  await page.goto('/#/lessons/new/solo')
+  await page.getByLabel('이름', { exact: true }).fill(name)
+  if (options.birthYear) await page.getByLabel('출생 연도').fill(options.birthYear)
+  await fillLesson(page, options)
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
+}
+
+/** 그룹 수업을 만듭니다. newStudents는 새로 적을 학생 이름. 만든 뒤에는 그 수업 화면이 열려 있습니다. */
+export async function addGroup(page: Page, name: string, options: LessonOptions & { newStudents?: string[] } = {}) {
+  await page.goto('/#/lessons/new/group')
+  await page.getByLabel('수업 이름').fill(name)
+  await fillLesson(page, options)
+  for (const [position, student] of (options.newStudents ?? []).entries()) {
+    await page.getByRole('button', { name: '새 학생 적기' }).click()
+    await page.getByLabel(`새 학생 ${position + 1} 이름`).fill(student)
+  }
   await page.getByRole('button', { name: '저장' }).click()
   await expect(page.getByRole('heading', { name, level: 1 })).toBeVisible()
 }

@@ -5,8 +5,6 @@ export interface NavItem {
   to: string
   label: string
   icon: ReactNode
-  /** 가로 화면의 왼쪽 메뉴에만 둡니다. (세로 화면은 위쪽 막대의 단추로) */
-  railOnly?: boolean
 }
 
 // 톱니바퀴 (Lucide 'settings' 아이콘 모양, ISC 사용 허가)
@@ -24,25 +22,15 @@ export const navItems: NavItem[] = [
     icon: <Icon><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z" /></Icon>,
   },
   {
-    to: '/attendance',
-    label: '출결',
-    // 체크 표시가 있는 달력
-    icon: <Icon><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M3 10h18M8 3v4M16 3v4M9 15.5l2 2 4-4" /></Icon>,
-  },
-  {
-    to: '/students',
-    label: '학생',
-    icon: <Icon><circle cx="12" cy="8" r="4" /><path d="M4 21a8 8 0 0 1 16 0" /></Icon>,
-  },
-  {
-    to: '/classes',
-    label: '반',
-    // 여러 사람
+    to: '/lessons',
+    label: '수업',
+    // 사람과 음표
     icon: (
       <Icon>
         <circle cx="9" cy="8" r="3.5" />
-        <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-        <path d="M16 4.6a3.5 3.5 0 0 1 0 6.8M18.5 14.4A6.5 6.5 0 0 1 21.5 20" />
+        <path d="M2.5 20a6.5 6.5 0 0 1 11.6-4" />
+        <path d="M18 18V10l3-1" />
+        <circle cx="16.5" cy="18" r="1.8" />
       </Icon>
     ),
   },
@@ -60,6 +48,5 @@ export const navItems: NavItem[] = [
     to: '/settings',
     label: '설정',
     icon: settingsIcon,
-    railOnly: true,
   },
 ]

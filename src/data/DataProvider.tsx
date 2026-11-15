@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { createIndexedDbStorage } from './indexedDbStorage'
 import { buildIndex, type DataIndex } from './schedule'
+import { normalizeDatabase } from './settings'
 import { applyChanges, emptyDatabase, type DataStorage } from './storage'
 import type { Change, Database } from './types'
 
@@ -46,7 +47,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
       .then(async (storage) => {
         const loaded = await storage.loadAll()
         if (cancelled) return
-        setData(loaded)
+        setData(normalizeDatabase(loaded))
         setLoad({ status: 'ready', storage })
         unsubscribe = storage.subscribe?.((remote) => {
           if (!cancelled) setData(remote)

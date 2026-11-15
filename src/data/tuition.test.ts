@@ -4,16 +4,21 @@ import { withPlan } from './makeups'
 import { tuitionPayment } from './payments'
 import { buildIndex } from './schedule'
 import { makeClass, makeDatabase, makeEnrollment, makeStudent, NOW, run, slot } from './testkit'
-import { allTuitionStates, bundleProgress, describeRemaining, dueViews, feeFor, paidInMonth, sessionMarks, tuitionState } from './tuition'
+import { allTuitionStates, bundleProgress, describeRemaining, dueViews, feeFor, isBehind, paidInMonth, sessionMarks, tuitionState } from './tuition'
 import type { AbsenceCounting, Change, Database, Makeup } from './types'
 
 // 2026년 11월: 월요일은 2, 9, 16, 23, 30일 (다섯 번). 12월 월요일은 7, 14, 21, 28일
 
-function weekly(patch: Parameters<typeof makeClass>[2] = {}, enrollment: Parameters<typeof makeEnrollment>[3] = {}): Database {
+function weekly(
+  patch: Parameters<typeof makeClass>[2] = {},
+  enrollment: Parameters<typeof makeEnrollment>[3] = {},
+  counting: AbsenceCounting = 'ifNoMakeup',
+): Database {
   return makeDatabase({
     students: [makeStudent('가')],
     classes: [makeClass('c', [slot(1)], patch)],
     enrollments: [makeEnrollment('c', '가', '2026-11-01', enrollment)],
+    settings: { absenceCounting: counting, makeupRule: { forAbsence: true, forCancellation: true, window: { type: 'days', days: 14 } } },
   })
 }
 
@@ -106,10 +111,32 @@ describe('횟수로 받는 수강료', () => {
   })
 })
 
+describe('후납', () => {
+  it('정한 횟수를 다 들은 날이 받을 날이고, 그 전에는 밀린 것이 아님', () => {
+    let db = weekly({ billing: 'postpaid' })
+    // 11월 2, 9, 16, 23일을 다 들은 23일이 받을 날
+    let current = state(db, '2026-11-15')
+    expect(current.dues[0]).toMatchObject({ dueOn: '2026-11-23', sessions: 4 })
+    expect(current.used).toBe(2)
+    expect(describeRemaining(current)).toBe('2/4회 들음')
+    expect(bundleProgress(current)).toEqual({ filled: 2, size: 4 })
+    expect(isBehind(current, '2026-11-15')).toBe(false)
+    // 받을 날이 지나면 밀림
+    current = state(db, '2026-11-25')
+    expect(describeRemaining(current)).toBe('4회 들음')
+    expect(isBehind(current, '2026-11-25')).toBe(true)
+    // 받으면 정산 끝, 다음 받을 날은 다음 묶음의 마지막 날 (12월 21일)
+    db = paid(db, 4, '2026-11-23')
+    current = state(db, '2026-11-25')
+    expect(describeRemaining(current)).toBe('정산 끝')
+    expect(current.dues[0].dueOn).toBe('2026-12-21')
+  })
+})
+
 describe('결석과 보강의 회차', () => {
   /** 4회분을 받고 11월 9일에 결석 */
   function absent(counting: AbsenceCounting): Database {
-    return run(paid(weekly({ absenceCounting: counting }), 4, '2026-11-02'), (current) =>
+    return run(paid(weekly({}, {}, counting), 4, '2026-11-02'), (current) =>
       setAttendanceChanges(current, 'c', '2026-11-09', '가', 'absent', NOW),
     )
   }
@@ -148,7 +175,7 @@ describe('결석과 보강의 회차', () => {
 
   it('휴강은 세지 않고, 휴강 보강을 하면 그날 셈 (어느 방식이든)', () => {
     for (const counting of ['ifNoMakeup', 'always', 'never'] as const) {
-      const db = run(paid(weekly({ absenceCounting: counting }), 4, '2026-11-02'), (current) =>
+      const db = run(paid(weekly({}, {}, counting), 4, '2026-11-02'), (current) =>
         setCancelledChanges(current, 'c', '2026-11-09', true, NOW),
       )
       expect(nextDue(db), counting).toBe('2026-12-07')

@@ -71,14 +71,12 @@ export default function PaymentsPage() {
                 </dl>
               </div>
 
-              <div className="home-section">
-                <h2 className="section-heading">
-                  받을 돈 <span className="muted">{dues.length}개</span>
+              <div className="block">
+                <h2 className="block-title">
+                  받을 돈 <span className="count">{dues.length}</span>
                 </h2>
                 {dues.length === 0 ? (
-                  <div className="card">
-                    <p className="muted">일주일 안에 받을 돈이 없어요.</p>
-                  </div>
+                  <p className="empty-line">일주일 안에 받을 돈이 없어요</p>
                 ) : (
                   <ul className="list" aria-label="받을 돈">
                     {dues.map((due) => (
@@ -90,26 +88,22 @@ export default function PaymentsPage() {
                 )}
               </div>
 
-              <div className="home-section">
-                <h2 className="section-heading">받은 돈</h2>
-                <div className="card calendar-card">
-                  <div className="calendar-toolbar">
-                    <div className="month-nav">
+              <div className="block">
+                <h2 className="block-title">받은 돈</h2>
+                <div className="card">
+                  <div className="cal-toolbar">
                       <button type="button" className="icon-btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="이전 달">
                         <BackIcon />
                       </button>
-                      <strong>{year}년 {monthNumber}월</strong>
+                      <strong className="cal-title">{year}년 {monthNumber}월</strong>
                       <button type="button" className="icon-btn" onClick={() => setMonth(addMonths(month, 1))} aria-label="다음 달" disabled={thisMonth}>
                         <ChevronRightIcon />
                       </button>
-                    </div>
-                    <span className="amount">{formatWon(sumAmounts(paid))}</span>
+                    <span className="amount cal-meta">{formatWon(sumAmounts(paid))}</span>
                   </div>
                 </div>
                 {paid.length === 0 ? (
-                  <div className="card">
-                    <p className="muted">{monthNumber}월에 받은 돈이 없어요.</p>
-                  </div>
+                  <p className="empty-line">{monthNumber}월에 받은 돈이 없어요</p>
                 ) : (
                   <ul className="list" aria-label="받은 돈">
                     {paid.map((payment) => (
@@ -123,14 +117,12 @@ export default function PaymentsPage() {
             </div>
 
             <div className="duo-col">
-              <div className="home-section">
-                <h2 className="section-heading">
-                  남은 횟수 <span className="muted">{current.length}명</span>
+              <div className="block">
+                <h2 className="block-title">
+                  남은 횟수 <span className="count">{current.length}</span>
                 </h2>
                 {current.length === 0 ? (
-                  <div className="card">
-                    <p className="muted">반에 넣은 학생이 없어요.</p>
-                  </div>
+                  <p className="empty-line">수업에 넣은 학생이 없어요</p>
                 ) : (
                   <ul className="list" aria-label="남은 횟수">
                     {current.map((state) => {
@@ -140,7 +132,7 @@ export default function PaymentsPage() {
                         <li key={`${state.studentId}|${state.classId}`}>
                           <TuitionRow
                             state={state}
-                            label={<>{student?.name} <span className="muted">{cls?.name}</span></>}
+                            label={<>{student?.name} <span className="muted">{cls?.kind === 'solo' ? '1:1 레슨' : cls?.name}</span></>}
                             onClick={() => setTarget({ type: 'tuition', studentId: state.studentId, classId: state.classId, dueOn: dueNowOn(state, todayStr) })}
                           />
                         </li>

@@ -1,6 +1,6 @@
 import { WEEKDAY_NAMES, WEEKDAYS_FROM_MONDAY, type DateStr } from '../utils/date'
-import { formatFee } from '../utils/money'
-import type { AbsenceCounting, FeeRule, MakeupRule, MakeupWindow, Period, TimeSlot } from './types'
+import { formatFee, formatWon } from '../utils/money'
+import type { AbsenceCounting, Billing, FeeRule, MakeupRule, MakeupWindow, Period, TimeSlot } from './types'
 
 /** date에 적용되는 기간 설정. date가 첫 기간보다 앞이면 첫 기간을 씁니다. */
 export function periodAt<T>(periods: Period<T>[], date: DateStr): T {
@@ -72,20 +72,33 @@ export function describeFee(fee: FeeRule): string {
   return `${fee.sessionCount}회 ${formatFee(fee.amount)}`
 }
 
-export function defaultFee(): FeeRule {
-  return { amount: 0, sessionCount: 4 }
+/** 1회 금액. 예: 8회 16만 원 → '1회 2만 원'. 나누어떨어지지 않으면 '1회 약 2만 833원'. 금액이 없으면 빈 글자 */
+export function perSessionText(fee: FeeRule): string {
+  if (!fee.amount || fee.sessionCount < 1) return ''
+  const exact = fee.amount % fee.sessionCount === 0
+  return `1회 ${exact ? '' : '약 '}${formatWon(Math.round(fee.amount / fee.sessionCount))}`
+}
+
+export const BILLING_LABELS: Record<Billing, string> = {
+  prepaid: '선납',
+  postpaid: '후납',
+}
+
+export const BILLING_HINTS: Record<Billing, string> = {
+  prepaid: '묶음의 첫 수업 날에 받아요. 받은 횟수를 다 쓰면 그다음 수업 날이 받을 날이에요.',
+  postpaid: '묶음의 마지막 수업 날에 받아요. 정한 횟수를 다 들으면 그날이 받을 날이에요.',
 }
 
 export const ABSENCE_COUNTING_LABELS: Record<AbsenceCounting, string> = {
+  never: '결석은 회차로 세지 않음',
   ifNoMakeup: '보강하면 안 세고, 보강을 안 하면 셈',
   always: '결석해도 회차로 셈',
-  never: '결석은 회차로 세지 않음',
 }
 
 export const ABSENCE_COUNTING_HINTS: Record<AbsenceCounting, string> = {
-  ifNoMakeup: '결석한 수업은 보강을 하면 보강한 날에 한 번 셉니다. 보강을 안 하기로 하거나 기한이 지나면 결석한 날에 셉니다.',
-  always: '결석해도 그 수업은 한 것으로 셉니다. 보강을 해도 회차는 더 늘지 않습니다.',
-  never: '결석한 수업은 세지 않아 남은 횟수가 그대로입니다. 보강을 하면 보강한 날에 셉니다.',
+  never: '결석한 수업은 남은 횟수에서 빠지지 않아요. 보강을 하면 보강한 날에 한 번 셉니다.',
+  ifNoMakeup: '보강을 하면 보강한 날에 한 번 셉니다. 보강을 안 하기로 하거나 기한이 지나면 결석한 날에 셉니다.',
+  always: '결석해도 그 수업은 한 것으로 셉니다. 보강을 해도 회차는 더 늘지 않아요.',
 }
 
 export function describeMakeupWindow(window: MakeupWindow): string {
@@ -108,10 +121,4 @@ export function describeMakeupRule(rule: MakeupRule): string {
   return `${targets.join('·')} 보강, ${describeMakeupWindow(rule.window)}`
 }
 
-export function defaultMakeupRule(): MakeupRule {
-  return {
-    forAbsence: true,
-    forCancellation: true,
-    window: { type: 'days', days: 14 },
-  }
-}
+

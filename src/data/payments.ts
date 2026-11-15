@@ -107,12 +107,13 @@ export function rememberMethod(method: PaymentMethod) {
   }
 }
 
-export function lastMethod(): PaymentMethod {
+/** 마지막으로 쓴 방법. 처음이면 설정의 기본 방법(fallback) */
+export function lastMethod(fallback: PaymentMethod = 'card'): PaymentMethod {
   let value: string | null = null
   try {
     value = localStorage.getItem(METHOD_KEY)
   } catch {
     // 못 읽으면 기본값
   }
-  return value === 'card' || value === 'transfer' || value === 'cash' || value === 'other' ? value : 'transfer'
+  return value === 'card' || value === 'transfer' || value === 'cash' || value === 'other' ? value : fallback
 }
