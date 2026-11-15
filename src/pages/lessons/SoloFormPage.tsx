@@ -14,7 +14,6 @@ import type { ClassGroup, Student, TimeSlot } from '../../data/types'
 import { useGoBack } from '../../hooks/useGoBack'
 import { isValidTime, today, type DateStr } from '../../utils/date'
 import { formatNumber, parseAmount } from '../../utils/money'
-import { endTimeAfter } from './time'
 
 /** 1:1 레슨 등록·고치기: 학생 정보와 수업을 한 화면에서 */
 export default function SoloFormPage() {
@@ -134,7 +133,7 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
           </div>
           <div className="field">
             <span className="field-label">요일과 시간</span>
-            <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} defaultEnd={endTimeAfter(settings.lessonStart, settings.lessonMinutes)} />
+            <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} duration={settings.lessonMinutes} />
             {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
           </div>
           {scheduleChanged && (

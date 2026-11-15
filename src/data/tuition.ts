@@ -83,7 +83,13 @@ export function sessionMarks(index: DataIndex, studentId: string, classId: strin
   return marks.sort((a, b) => a.date.localeCompare(b.date) || a.kind.localeCompare(b.kind))
 }
 
-/** 이 학생에게 적용하는 수강료: 학생만 다르게 정했으면 그것, 아니면 반의 기본 수강료 */
+/** 이 학생에게 적용하는 납부 방식: 학생만 다르게 정했으면 그것, 아니면 수업의 방식 */
+export function billingFor(index: DataIndex, studentId: string, classId: string): Billing {
+  const enrollments = pairEnrollments(index, studentId, classId)
+  return enrollments[enrollments.length - 1]?.billing ?? index.classes.get(classId)?.billing ?? 'prepaid'
+}
+
+/** 이 학생에게 적용하는 수강료: 학생만 다르게 정했으면 그것, 아니면 수업의 기본 수강료 */
 export function feeFor(index: DataIndex, studentId: string, classId: string): FeeRule {
   const enrollments = pairEnrollments(index, studentId, classId)
   const own = enrollments[enrollments.length - 1]?.fee
@@ -136,7 +142,8 @@ export function tuitionState(index: DataIndex, studentId: string, classId: strin
   const used = marks.filter((mark) => mark.used).length
 
   // 받을 날이 되는 수업: 선납은 묶음의 첫 회, 후납은 마지막 회
-  const offset = cls.billing === 'postpaid' ? size - 1 : 0
+  const billing = billingFor(index, studentId, classId)
+  const offset = billing === 'postpaid' ? size - 1 : 0
   const dues: TuitionDue[] = []
   for (let position = covered; position + offset < marks.length && dues.length < MAX_DUES; position += size) {
     dues.push({ key: `${pairKey(studentId, classId)}|${position}`, studentId, classId, dueOn: marks[position + offset].date, sessions: size, amount: fee.amount })
@@ -155,7 +162,7 @@ export function tuitionState(index: DataIndex, studentId: string, classId: strin
     studentId,
     classId,
     fee,
-    billing: cls.billing,
+    billing,
     covered,
     used,
     remaining: covered - used,

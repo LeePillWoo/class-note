@@ -3,13 +3,12 @@ import { latestSlots, useEnrollments, type EnrollmentPatch, type QuickStudent } 
 import { newId } from '../data/id'
 import { describeBirthYear } from '../data/students'
 import { useData } from '../data/DataProvider'
-import { describeFee, describeSlots, sortSlots } from '../data/rules'
+import { BILLING_LABELS, describeFee, describeSlots, sortSlots } from '../data/rules'
 import { compareStudents, isCurrentEnrollment, studentStatus } from '../data/schedule'
 import type { Enrollment } from '../data/types'
 import { WEEKDAY_NAMES, formatDate, today, type DateStr, type Weekday } from '../utils/date'
 import { formatNumber, parseAmount } from '../utils/money'
-import AmountInput from './AmountInput'
-import { parseBirthYear } from './FormParts'
+import { FeeFields, feeDraftErrors, parseBirthYear, type FeeDraft } from './FormParts'
 import { PlusIcon, TrashIcon } from './icons'
 import DateField from './DateField'
 import Sheet from './Sheet'
@@ -171,9 +170,11 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
 
   const [startedOn, setStartedOn] = useState<DateStr>(enrollment.startedOn)
   const [weekdays, setWeekdays] = useState<Weekday[]>(enrollment.weekdays ?? classDays)
-  const [ownFee, setOwnFee] = useState(Boolean(enrollment.fee))
-  const [countText, setCountText] = useState(String(enrollment.fee?.sessionCount ?? classFee.sessionCount))
-  const [amountText, setAmountText] = useState(formatNumber(enrollment.fee?.amount ?? classFee.amount))
+  const [fee, setFee] = useState<FeeDraft>({
+    countText: String(enrollment.fee?.sessionCount ?? classFee.sessionCount),
+    amountText: (enrollment.fee?.amount ?? classFee.amount) ? formatNumber(enrollment.fee?.amount ?? classFee.amount) : '',
+    billing: enrollment.billing ?? cls?.billing ?? 'prepaid',
+  })
   const [creditText, setCreditText] = useState(String(enrollment.startCredit))
   const [ended, setEnded] = useState(Boolean(enrollment.endedOn))
   const [endedOn, setEndedOn] = useState<DateStr>(enrollment.endedOn ?? today())
@@ -181,8 +182,11 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
   const [error, setError] = useState('')
 
   if (!cls || !student) return null
-  const count = Number(countText)
-  const validFee = !ownFee || (Number.isInteger(count) && count >= 1 && count <= 99)
+  const count = Number(fee.countText)
+  const amount = parseAmount(fee.amountText) ?? 0
+  const validFee = !feeDraftErrors(fee)
+  // 수업의 기본과 같으면 따로 적지 않습니다. (수업 수강료를 바꾸면 함께 따라가게)
+  const sameFee = count === classFee.sessionCount && amount === classFee.amount
   const credit = Number(creditText || '0')
   const validCredit = Number.isInteger(credit) && credit >= 0 && credit <= 999
   const validEnd = !ended || endedOn >= startedOn
@@ -210,7 +214,8 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
       startCredit: credit,
       endedOn: ended ? endedOn : undefined,
       weekdays: everyDay ? undefined : classDays.filter((day) => weekdays.includes(day)),
-      fee: ownFee ? { amount: parseAmount(amountText) ?? 0, sessionCount: count } : undefined,
+      fee: sameFee ? undefined : { amount, sessionCount: count },
+      billing: fee.billing === cls?.billing ? undefined : fee.billing,
     }
     void run(() => saveEnrollment(enrollment, patch))
   }
@@ -240,7 +245,7 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
               </button>
             ))}
           </div>
-          {weekdays.length === 0 && <p className="field-error">요일을 하나 이상 골라 주세요.</p>}
+          {weekdays.length === 0 && <p className="field-error">요일을 하나 이상 골라 주세요</p>}
         </div>
       )}
 
@@ -254,26 +259,11 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
         <p className="muted">전부터 다니던 학생이면, 이미 받은 수강료로 남은 수업 횟수를 적어 주세요. 처음 온 학생은 0이에요.</p>
       </div>
 
-      <label className="check-row">
-        <input type="checkbox" checked={ownFee} onChange={(event) => setOwnFee(event.target.checked)} />
-        이 학생만 수강료를 다르게 (수업 기본: {describeFee(classFee)})
-      </label>
-      {ownFee && (
-        <div className="field-pair">
-          <div className="field">
-            <label className="field-label" htmlFor="enrollment-count">횟수</label>
-            <div className="count-input">
-              <input id="enrollment-count" className="input" inputMode="numeric" autoComplete="off" value={countText} aria-invalid={!validFee}
-                onChange={(event) => setCountText(event.target.value.replace(/[^\d]/g, '').slice(0, 2))} />
-              <span className="unit">회마다</span>
-            </div>
-          </div>
-          <div className="field">
-            <label className="field-label" htmlFor="enrollment-amount">금액</label>
-            <AmountInput id="enrollment-amount" value={amountText} onChange={setAmountText} placeholder="예: 120,000" />
-          </div>
-        </div>
-      )}
+      <div className="field">
+        <span className="field-label">이 학생의 수강료</span>
+        <p className="muted">수업 기본: {describeFee(classFee)} · {BILLING_LABELS[cls.billing]}. 학생마다 횟수, 금액, 받는 때를 다르게 정할 수 있어요</p>
+      </div>
+      <FeeFields draft={fee} onChange={setFee} submitted />
 
       <label className="check-row">
         <input type="checkbox" checked={ended} onChange={(event) => setEnded(event.target.checked)} />

@@ -5,6 +5,7 @@ import { dayLessons, rollCounts, type LessonView } from '../data/lessons'
 import { WEEKDAY_NAMES, addDays, dateParts, today, weekdayOf, type DateStr } from '../utils/date'
 import { formatWeekRange, startOfWeek, weekDates } from '../utils/week'
 import { BackIcon, ChevronRightIcon } from './icons'
+import { lessonMembers } from './LessonCard'
 
 interface WeekScheduleProps {
   /** 수업을 누르면 그 수업의 출석부를 엽니다. */
@@ -64,6 +65,7 @@ export default function WeekSchedule({ onOpen }: WeekScheduleProps) {
 
 function WeekItem({ view, todayStr, date, onOpen }: { view: LessonView; todayStr: DateStr; date: DateStr; onOpen(view: LessonView): void }) {
   const counts = rollCounts(view)
+  const members = lessonMembers(view)
   let state = ''
   if (view.cancelled) state = '휴강'
   else if (view.kind === 'makeup') state = '보강'
@@ -73,7 +75,10 @@ function WeekItem({ view, todayStr, date, onOpen }: { view: LessonView; todayStr
   return (
     <button type="button" className={className} style={softColorVars(view.cls.color) as CSSProperties} onClick={() => onOpen(view)}>
       <span className="week-time">{view.start}</span>
-      <span className="week-name">{view.cls.name}</span>
+      <span className="week-name">
+        {view.cls.name}
+        {members && <span className="week-members"> ({members})</span>}
+      </span>
       {state && <span className="week-state">{state}</span>}
     </button>
   )

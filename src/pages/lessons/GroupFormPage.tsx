@@ -19,7 +19,6 @@ import { useGoBack } from '../../hooks/useGoBack'
 import { formatDate, today, type DateStr } from '../../utils/date'
 import { formatNumber, parseAmount } from '../../utils/money'
 import { slotsError } from './SoloFormPage'
-import { endTimeAfter } from './time'
 
 /** 새로 적는 학생 한 줄 (이름, 출생 연도) */
 interface NewStudentRow {
@@ -158,7 +157,7 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
 
         <div className="card form-section">
           <h2 className="section-title">요일과 시간</h2>
-          <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} defaultEnd={endTimeAfter(settings.lessonStart, settings.lessonMinutes)} />
+          <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} duration={settings.lessonMinutes} />
           {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
           {scheduleChanged && (
             <div className="field">

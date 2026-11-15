@@ -14,6 +14,7 @@ import type { Makeup } from '../data/types'
 import { formatDate, isValidTime, today, type DateStr } from '../utils/date'
 import DateField from './DateField'
 import Sheet from './Sheet'
+import TimeSelect, { fromMinutes, toMinutes } from './TimeSelect'
 
 interface MakeupSheetProps {
   /** 열 보강들. 여러 개면 한 번에 같은 날로 잡습니다. (휴강 보강) null이면 창을 닫습니다. */
@@ -179,11 +180,17 @@ function MakeupEditor({ makeups, onDone }: { makeups: Makeup[]; onDone(): void }
           )}
           <div className="slot-row">
             <span className="slot-day slot-label">시각</span>
-            <input type="time" className="input time-input" step={300} value={start} aria-label="보강 시작 시각" disabled={!!joinClassId}
-              onChange={(event) => { setStart(event.target.value); setTimeEdited(true) }} />
-            <span aria-hidden="true">~</span>
-            <input type="time" className="input time-input" step={300} value={end} aria-label="보강 끝 시각" disabled={!!joinClassId}
-              onChange={(event) => { setEnd(event.target.value); setTimeEdited(true) }} />
+            <TimeSelect value={start} label="보강 시작 시각" disabled={!!joinClassId}
+              onChange={(value) => {
+                // 시작을 바꾸면 끝은 수업 시간만큼 뒤로 따라옵니다. 끝은 그 뒤에 따로 고칠 수 있습니다.
+                const length = start && end && end > start ? toMinutes(end) - toMinutes(start) : 60
+                setStart(value)
+                setEnd(fromMinutes(toMinutes(value) + length))
+                setTimeEdited(true)
+              }} />
+            <span className="slot-sep" aria-hidden="true">~</span>
+            <TimeSelect value={end} label="보강 끝 시각" disabled={!!joinClassId}
+              onChange={(value) => { setEnd(value); setTimeEdited(true) }} />
           </div>
         </>
       )}

@@ -1,19 +1,24 @@
 import { sortSlots } from '../data/rules'
 import type { TimeSlot } from '../data/types'
 import { WEEKDAY_NAMES, WEEKDAYS_FROM_MONDAY, type Weekday } from '../utils/date'
+import TimeSelect, { fromMinutes, toMinutes } from './TimeSelect'
 
 interface WeekdaySlotsEditorProps {
   /** 화면 읽기 프로그램에 읽어줄 이름. 예: '수업' */
   label: string
   slots: TimeSlot[]
   onChange(slots: TimeSlot[]): void
-  /** 요일을 처음 고를 때 넣을 시간 */
+  /** 요일을 처음 고를 때 넣을 시작 시각 */
   defaultStart: string
-  defaultEnd: string
+  /** 수업 시간(분). 시작 시각을 고르면 끝 시각이 이만큼 뒤로 자동으로 바뀝니다. */
+  duration: number
 }
 
-/** 요일을 고르고(월~일), 고른 요일마다 시작·끝 시각을 넣습니다. */
-export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStart, defaultEnd }: WeekdaySlotsEditorProps) {
+/**
+ * 요일을 고르고(월~일), 고른 요일마다 시작·끝 시각을 고릅니다.
+ * 시작 시각을 바꾸면 끝 시각은 수업 시간만큼 뒤로 자동으로 맞춰지고, 그 뒤에 끝 시각만 따로 고칠 수 있습니다.
+ */
+export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStart, duration }: WeekdaySlotsEditorProps) {
   const sorted = sortSlots(slots)
 
   function toggle(weekday: Weekday) {
@@ -21,13 +26,19 @@ export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStar
       onChange(slots.filter((slot) => slot.weekday !== weekday))
       return
     }
-    // 새 요일은 마지막 요일의 시간을 그대로 씁니다. (월·수·금 같은 시간이 대부분이라서)
+    // 새 요일은 마지막 요일의 시간을 그대로 씁니다. (월·수 같은 시간이 대부분이라서)
     const last = sorted[sorted.length - 1]
-    onChange(sortSlots([...slots, { weekday, start: last?.start ?? defaultStart, end: last?.end ?? defaultEnd }]))
+    const start = last?.start ?? defaultStart
+    const end = last?.end ?? fromMinutes(toMinutes(defaultStart) + duration)
+    onChange(sortSlots([...slots, { weekday, start, end }]))
   }
 
-  function update(weekday: Weekday, field: 'start' | 'end', value: string) {
-    onChange(slots.map((slot) => (slot.weekday === weekday ? { ...slot, [field]: value } : slot)))
+  function setStart(weekday: Weekday, start: string) {
+    onChange(slots.map((slot) => (slot.weekday === weekday ? { ...slot, start, end: fromMinutes(toMinutes(start) + duration) } : slot)))
+  }
+
+  function setEnd(weekday: Weekday, end: string) {
+    onChange(slots.map((slot) => (slot.weekday === weekday ? { ...slot, end } : slot)))
   }
 
   return (
@@ -44,14 +55,10 @@ export default function WeekdaySlotsEditor({ label, slots, onChange, defaultStar
         const day = WEEKDAY_NAMES[slot.weekday]
         return (
           <div key={slot.weekday} className="slot-row">
-            <span className="slot-day">{day}</span>
-            <input type="time" className="input time-input" step={300} value={slot.start}
-              onChange={(event) => update(slot.weekday, 'start', event.target.value)}
-              aria-label={`${label} ${day}요일 시작 시각`} />
-            <span aria-hidden="true">~</span>
-            <input type="time" className="input time-input" step={300} value={slot.end}
-              onChange={(event) => update(slot.weekday, 'end', event.target.value)}
-              aria-label={`${label} ${day}요일 끝 시각`} />
+            <span className={`slot-day wd-${slot.weekday}`}>{day}</span>
+            <TimeSelect value={slot.start} onChange={(value) => setStart(slot.weekday, value)} label={`${label} ${day}요일 시작 시각`} />
+            <span className="slot-sep" aria-hidden="true">~</span>
+            <TimeSelect value={slot.end} onChange={(value) => setEnd(slot.weekday, value)} label={`${label} ${day}요일 끝 시각`} />
           </div>
         )
       })}

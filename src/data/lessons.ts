@@ -33,6 +33,12 @@ export interface LessonView {
   guests: GuestEntry[]
 }
 
+/** 대표 두 명과 나머지 수. 예: '김하준, 박지호 외 2명', 두 명 이하면 이름만. 없으면 빈 글자 */
+export function namesSummary(names: string[]): string {
+  if (names.length <= 2) return names.join(', ')
+  return `${names.slice(0, 2).join(', ')} 외 ${names.length - 2}명`
+}
+
 export function lessonKey(classId: string, date: DateStr): string {
   return `${classId}|${date}`
 }

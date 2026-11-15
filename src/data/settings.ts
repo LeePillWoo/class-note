@@ -18,7 +18,7 @@ export function defaultSettings(): SettingsValues {
     absenceCounting: 'never',
     makeupRule: { forAbsence: true, forCancellation: true, window: { type: 'none' } },
     method: 'card',
-    lessonMinutes: 50,
+    lessonMinutes: 60,
     lessonStart: '16:00',
   }
 }

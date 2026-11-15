@@ -157,6 +157,7 @@ function GroupDetail({ classId }: { classId: string }) {
                               enrollment.weekdays && `${enrollment.weekdays.map((day) => WEEKDAY_NAMES[day]).join('·')}만`,
                               enrollment.startedOn > todayStr && `${formatDate(enrollment.startedOn)}부터`,
                               enrollment.endedOn && `${formatDate(enrollment.endedOn)}까지`,
+                              state && `${describeFee(state.fee)} · ${BILLING_LABELS[state.billing]}`,
                             ]
                               .filter(Boolean)
                               .join(' · ')}
@@ -172,7 +173,7 @@ function GroupDetail({ classId }: { classId: string }) {
                           </button>
                         )}
                         <button type="button" className="btn btn-ghost btn-small" onClick={() => setEnrollmentId(enrollment.id)}>
-                          수강 설정
+                          수강료·수강 설정
                         </button>
                       </div>
                     </li>

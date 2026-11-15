@@ -57,8 +57,8 @@ interface LessonOptions {
 async function fillLesson(page: Page, options: LessonOptions) {
   const days = options.days ?? ALL_DAYS
   await toggleWeekdays(page, '수업', [days[0]])
-  if (options.start) await page.getByLabel(`수업 ${days[0]}요일 시작 시각`).fill(options.start)
-  if (options.end) await page.getByLabel(`수업 ${days[0]}요일 끝 시각`).fill(options.end)
+  if (options.start) await page.getByLabel(`수업 ${days[0]}요일 시작 시각`).selectOption(options.start)
+  if (options.end) await page.getByLabel(`수업 ${days[0]}요일 끝 시각`).selectOption(options.end)
   // 나머지 요일은 첫 요일의 시간을 그대로 따릅니다.
   await toggleWeekdays(page, '수업', days.slice(1))
   await page.getByLabel('횟수', { exact: true }).fill(options.count ?? '4')

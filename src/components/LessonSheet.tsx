@@ -1,7 +1,7 @@
 import { useData } from '../data/DataProvider'
 import { dayLessons } from '../data/lessons'
 import { formatDate, today, type DateStr } from '../utils/date'
-import { LessonBody, lessonSummary } from './LessonCard'
+import { LessonBody, lessonMembers, lessonSummary } from './LessonCard'
 import Sheet from './Sheet'
 
 /** 열 수업: 날짜와 수업 열쇠 (데이터가 바뀌면 다시 찾아 늘 최신으로 보여줍니다) */
@@ -29,6 +29,7 @@ export default function LessonSheet({ target, onClose, onOpenMakeup }: LessonShe
             <h2 className="sheet-title">
               <span className="dot" style={{ background: view.cls.color }} />
               {view.cls.name}
+              {lessonMembers(view) && <span className="lesson-members"> ({lessonMembers(view)})</span>}
             </h2>
             <p className="muted">
               {formatDate(view.date)} {view.start}~{view.end} · {lessonSummary(view, todayStr).summary}

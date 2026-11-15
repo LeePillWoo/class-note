@@ -125,8 +125,10 @@ export interface Enrollment extends BaseRecord {
   endedOn?: DateStr
   /** 듣는 요일. 없으면 반의 모든 수업 (주 2회 반에서 주 1회만 듣는 학생) */
   weekdays?: Weekday[]
-  /** 이 학생만 다른 수강료. 없으면 반의 기본 수강료 */
+  /** 이 학생만 다른 수강료. 없으면 수업의 기본 수강료 */
   fee?: FeeRule
+  /** 이 학생만 다른 납부 방식(선납/후납). 없으면 수업의 방식 */
+  billing?: Billing
   /** 앱에 넣을 때 이미 받은 수강료로 남아 있던 수업 횟수 */
   startCredit: number
 }

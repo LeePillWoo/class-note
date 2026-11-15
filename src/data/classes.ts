@@ -143,6 +143,8 @@ export interface EnrollmentPatch {
   weekdays?: Weekday[]
   /** 이 학생만 다른 수강료. 수업의 기본 수강료를 따르면 undefined */
   fee?: FeeRule
+  /** 이 학생만 다른 납부 방식. 수업의 방식을 따르면 undefined */
+  billing?: Billing
   startCredit: number
 }
 
@@ -174,7 +176,7 @@ export function useEnrollments() {
   }
 
   async function saveEnrollment(enrollment: Enrollment, patch: EnrollmentPatch) {
-    const { endedOn: _endedOn, weekdays: _weekdays, fee: _fee, ...rest } = enrollment
+    const { endedOn: _endedOn, weekdays: _weekdays, fee: _fee, billing: _billing, ...rest } = enrollment
     const item: Enrollment = {
       ...rest,
       startedOn: patch.startedOn,
@@ -182,6 +184,7 @@ export function useEnrollments() {
       ...(patch.endedOn ? { endedOn: patch.endedOn } : {}),
       ...(patch.weekdays ? { weekdays: patch.weekdays } : {}),
       ...(patch.fee ? { fee: patch.fee } : {}),
+      ...(patch.billing ? { billing: patch.billing } : {}),
       updatedAt: nowIso(),
     }
     await apply([{ type: 'put', collection: 'enrollments', item }])

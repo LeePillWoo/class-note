@@ -111,6 +111,22 @@ describe('횟수로 받는 수강료', () => {
   })
 })
 
+describe('학생마다 다른 수강료 규칙', () => {
+  it('같은 수업에서 한 학생만 8회·후납', () => {
+    const db = makeDatabase({
+      students: [makeStudent('가'), makeStudent('나')],
+      classes: [makeClass('c', [slot(1)])],
+      enrollments: [makeEnrollment('c', '가', '2026-11-01'), makeEnrollment('c', '나', '2026-11-01', { fee: { amount: 150_000, sessionCount: 8 }, billing: 'postpaid' })],
+    })
+    const index = buildIndex(db)
+    expect(tuitionState(index, '가', 'c', '2026-11-01')!).toMatchObject({ billing: 'prepaid', fee: { sessionCount: 4 } })
+    const other = tuitionState(index, '나', 'c', '2026-11-01')!
+    expect(other).toMatchObject({ billing: 'postpaid', fee: { amount: 150_000, sessionCount: 8 } })
+    // 후납 8회: 11월 2일부터 8번째 월요일(12월 21일)이 받을 날
+    expect(other.dues[0]).toMatchObject({ dueOn: '2026-12-21', amount: 150_000, sessions: 8 })
+  })
+})
+
 describe('후납', () => {
   it('정한 횟수를 다 들은 날이 받을 날이고, 그 전에는 밀린 것이 아님', () => {
     let db = weekly({ billing: 'postpaid' })

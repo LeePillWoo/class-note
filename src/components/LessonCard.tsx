@@ -3,7 +3,7 @@ import { Link } from 'react-router'
 import { useAttendance } from '../data/attendance'
 import { softColorVars } from '../data/colors'
 import { useData } from '../data/DataProvider'
-import { rollCounts, type GuestEntry, type LessonView, type RollEntry } from '../data/lessons'
+import { namesSummary, rollCounts, type GuestEntry, type LessonView, type RollEntry } from '../data/lessons'
 import { MAKEUP_STATE_LABELS, makeupState } from '../data/makeupRules'
 import { useMakeups } from '../data/makeups'
 import { ROLL_STATUS_LABELS } from '../data/schedule'
@@ -32,6 +32,13 @@ function hasProgress(makeup: Makeup | undefined): boolean {
 function minutesBetween(start: string, end: string): number {
   const toMinutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5))
   return toMinutes(end) - toMinutes(start)
+}
+
+/** 그룹 수업·보강 수업에 오는 학생들: 대표 두 명과 나머지 수 (1:1 레슨은 이름이 곧 학생이라 빈 글자) */
+export function lessonMembers(view: LessonView): string {
+  if (view.kind === 'makeup') return namesSummary(view.guests.map((guest) => guest.student.name))
+  if (view.cls.kind === 'solo') return ''
+  return namesSummary(view.roll.map((entry) => entry.student.name))
 }
 
 /** 수업 카드의 상태 표시와 한 줄 요약 */
@@ -65,6 +72,7 @@ export default function LessonCard({ view, open, onToggle, onOpenMakeup, showDat
   const bodyId = useId()
   const todayStr = today()
   const { badge, summary } = lessonSummary(view, todayStr)
+  const members = lessonMembers(view)
 
   const className = `lesson${open ? ' is-open' : ''}${view.cancelled ? ' is-cancelled' : ''}`
   return (
@@ -78,6 +86,7 @@ export default function LessonCard({ view, open, onToggle, onOpenMakeup, showDat
           <span className="lesson-name">
             {view.cls.name}
             {view.cls.kind === 'solo' && view.kind === 'class' && <span className="tag">1:1</span>}
+            {members && <span className="lesson-members"> ({members})</span>}
           </span>
           <span className="lesson-sub">
             {showDate && `${formatDate(view.date)} · `}

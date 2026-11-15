@@ -2,7 +2,7 @@ import { newId } from '../data/id'
 import { BILLING_HINTS, BILLING_LABELS, perSessionText } from '../data/rules'
 import type { StudentFields } from '../data/students'
 import type { Billing, Guardian } from '../data/types'
-import { parseAmount } from '../utils/money'
+import { formatWon, parseAmount } from '../utils/money'
 import AmountInput from './AmountInput'
 import { PlusIcon, TrashIcon } from './icons'
 import PhotoField from './PhotoField'
@@ -134,10 +134,11 @@ export function feeDraftErrors(draft: FeeDraft): string {
 export function FeeFields({ draft, onChange, submitted }: { draft: FeeDraft; onChange(draft: FeeDraft): void; submitted: boolean }) {
   const error = feeDraftErrors(draft)
   const count = Number(draft.countText)
-  const per = !error ? perSessionText({ amount: parseAmount(draft.amountText) ?? 0, sessionCount: count }) : ''
+  const amount = parseAmount(draft.amountText) ?? 0
+  const per = !error ? perSessionText({ amount, sessionCount: count }) : ''
   return (
     <>
-      <div className="field-pair fee-pair">
+      <div className="fee-pair">
         <div className="field">
           <label className="field-label" htmlFor="fee-count">횟수</label>
           <div className="input-with-unit">
@@ -148,12 +149,12 @@ export function FeeFields({ draft, onChange, submitted }: { draft: FeeDraft; onC
         </div>
         <div className="field">
           <label className="field-label" htmlFor="fee-amount">수강료</label>
-          <AmountInput id="fee-amount" value={draft.amountText} onChange={(amountText) => onChange({ ...draft, amountText })} placeholder="160,000" />
+          <AmountInput id="fee-amount" value={draft.amountText} onChange={(amountText) => onChange({ ...draft, amountText })} placeholder="160,000" hint={false} />
         </div>
       </div>
       {submitted && error && <p className="field-error" role="alert">{error}</p>}
       <p className={per ? 'per-session' : 'per-session is-empty'} aria-live="polite">
-        {per ? `${per} (${draft.countText}회로 나눈 금액)` : '금액을 적으면 1회 금액이 보여요'}
+        {per ? `${draft.countText}회 ${formatWon(amount)} · ${per}` : '금액을 적으면 1회 금액이 보여요'}
       </p>
       <div className="field">
         <span className="field-label">받는 때</span>

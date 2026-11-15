@@ -5,7 +5,7 @@ import { ABSENCE_COUNTING_HINTS, ABSENCE_COUNTING_LABELS, BILLING_HINTS, BILLING
 import { useSettings } from '../../data/settings'
 import { PAYMENT_METHOD_LABELS } from '../../data/tuition'
 import type { AbsenceCounting, Billing, MakeupWindow, PaymentMethod } from '../../data/types'
-import { isValidTime } from '../../utils/date'
+import TimeSelect from '../../components/TimeSelect'
 
 // 설정 > 기본 규칙의 화면들. 바꾸면 바로 저장합니다.
 
@@ -65,24 +65,19 @@ export function FeeSettingsPage() {
   )
 }
 
-const MINUTES = [30, 40, 50, 60, 90]
+const MINUTES = [30, 40, 50, 60, 80, 90, 120]
 
 /** 수업·학생 추가: 새 1:1 레슨·그룹 수업의 기본 시작 시각과 수업 시간 */
 export function LessonSettingsPage() {
   const { settings, save } = useSettings()
-  const [start, setStart] = useState(settings.lessonStart)
   return (
     <section className="narrow">
-      <PageHeader title="수업·학생 추가" subtitle="1:1 레슨이나 그룹 수업을 새로 만들 때, 요일을 고르면 이 시간이 먼저 채워져요" backTo="/settings" />
+      <PageHeader title="수업·학생 추가" subtitle="1:1 레슨이나 그룹 수업을 새로 만들 때, 요일을 고르면 이 시간이 먼저 채워져요. 끝 시각은 시작 시각에서 수업 시간만큼 뒤로 자동으로 맞춰져요" backTo="/settings" />
       <div className="card form-section">
         <div className="field-pair">
           <div className="field">
             <label className="field-label" htmlFor="rule-start">시작 시각</label>
-            <input id="rule-start" type="time" className="input time-input" step={300} value={start}
-              onChange={(event) => {
-                setStart(event.target.value)
-                if (isValidTime(event.target.value)) void save({ lessonStart: event.target.value })
-              }} />
+            <TimeSelect id="rule-start" label="시작 시각" value={settings.lessonStart} onChange={(value) => void save({ lessonStart: value })} />
           </div>
           <div className="field">
             <label className="field-label" htmlFor="rule-minutes">수업 시간</label>

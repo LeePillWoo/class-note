@@ -9,6 +9,7 @@ import { useData } from '../../data/DataProvider'
 import { describeSlots } from '../../data/rules'
 import { compareStudents, currentMembers, isCurrentEnrollment, studentStatus } from '../../data/schedule'
 import { describeBirthYear } from '../../data/students'
+import { namesSummary } from '../../data/lessons'
 import { describeRemaining, isBehind, tuitionState } from '../../data/tuition'
 import type { ClassGroup, Student } from '../../data/types'
 import SplitView from '../../layout/SplitView'
@@ -244,11 +245,11 @@ function GroupLink({ cls }: { cls: ClassGroup }) {
       <span className="person-text">
         <span className="person-name">
           {cls.name}
+          {members.length > 0 && <span className="person-members"> ({namesSummary(members.map((member) => member.student.name))})</span>}
           {cls.endedOn && cls.endedOn < todayStr && <span className="tag">닫음</span>}
         </span>
         <span className="person-sub">{describeSlots(latestSlots(cls))}</span>
       </span>
-      <span className="person-meta">{members.length}명</span>
     </NavLink>
   )
 }

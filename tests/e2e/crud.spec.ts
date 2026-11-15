@@ -42,7 +42,26 @@ test('1:1 레슨: 학생과 수업을 한 번에 등록, 1회 금액 표시, 출
   await expect(page.getByRole('heading', { name: '아직 수업이 없어요' })).toBeVisible()
 })
 
-test('그룹 수업: 만들면서 새 학생을 적고, 나중에 학생 추가', async ({ page }) => {
+test('시각 고르기: 오전이 먼저, 시작을 고르면 끝은 1시간 뒤로 자동, 끝은 그 뒤에 따로 고침', async ({ page }) => {
+  await page.goto('/#/lessons/new/solo')
+  await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '화', exact: true }).click()
+  const start = page.getByLabel('수업 화요일 시작 시각')
+  const end = page.getByLabel('수업 화요일 끝 시각')
+  // 목록은 오전부터
+  const labels = await start.locator('option').allTextContents()
+  expect(labels[0]).toBe('오전 6:00')
+  expect(labels.findIndex((label) => label.startsWith('오후'))).toBeGreaterThan(labels.findIndex((label) => label === '오전 11:50'))
+  await start.selectOption('10:30')
+  await expect(end).toHaveValue('11:30')
+  await expect(end.locator('option:checked')).toHaveText('오전 11:30')
+  await start.selectOption('14:00')
+  await expect(end).toHaveValue('15:00')
+  await end.selectOption('14:50')
+  await expect(end).toHaveValue('14:50')
+  await expect(start).toHaveValue('14:00')
+})
+
+test('그룹 수업: 만들면서 새 학생을 적고, 나중에 학생 추가, 학생마다 수강료 규칙', async ({ page }) => {
   await addGroup(page, '기타 교실', { days: ['월', '수'], count: '8', amount: '160000', newStudents: ['김가온', '이나래'] })
   const members = page.getByRole('list', { name: '이 수업 학생' })
   await expect(members.getByRole('link')).toHaveCount(2)
@@ -55,6 +74,23 @@ test('그룹 수업: 만들면서 새 학생을 적고, 나중에 학생 추가'
   await sheet.getByRole('button', { name: '1명 넣기' }).click()
   await expect(members.getByRole('link')).toHaveCount(3)
   await expect(members.getByRole('link', { name: /박다솜.*2014년생/ })).toBeVisible()
+
+  // 수업 목록: 이름 옆에 대표 두 명과 나머지 수
+  await page.goto('/#/lessons')
+  await expect(page.getByRole('list', { name: '그룹 수업' }).getByRole('link', { name: /기타 교실 \(김가온, 박다솜 외 1명\)/ })).toBeVisible()
+  await page.getByRole('list', { name: '그룹 수업' }).getByRole('link', { name: /기타 교실/ }).click()
+
+  // 학생마다 수강료: 이나래만 4회 9만 원, 후납
+  const naraeRow = page.locator('.member-row', { hasText: '이나래' })
+  await naraeRow.getByRole('button', { name: '수강료·수강 설정' }).click()
+  const sheet2 = page.getByRole('dialog', { name: '수강 설정' })
+  await sheet2.getByLabel('횟수', { exact: true }).fill('4')
+  await sheet2.getByLabel('수강료', { exact: true }).fill('90000')
+  await sheet2.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
+  await sheet2.getByRole('button', { name: '저장' }).click()
+  await expect(sheet2).toBeHidden()
+  await expect(naraeRow).toContainText('4회 9만 원 · 후납')
+  await expect(page.locator('.member-row', { hasText: '김가온' })).toContainText('8회 16만 원 · 선납')
 
   // 그룹 학생을 누르면 학생 화면 (출결 달력)
   await members.getByRole('link', { name: /김가온/ }).click()
@@ -96,7 +132,9 @@ test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸�
   await expect(menu.getByRole('link', { name: /수강료 납부/ })).toContainText('8회 · 후납')
 
   await menu.getByRole('link', { name: /수업·학생 추가/ }).click()
-  await page.getByLabel('시작 시각').fill('15:00')
+  // 처음 값은 1시간 수업
+  await expect(page.getByLabel('수업 시간')).toHaveValue('60')
+  await page.getByLabel('시작 시각').selectOption('15:00')
   await page.getByLabel('수업 시간').selectOption('40')
   await expect(page.getByLabel('수업 시간')).toHaveValue('40')
 
