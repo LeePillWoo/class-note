@@ -148,6 +148,8 @@ test('그룹 출석부 표: 칸을 누르면 출석, 결석, 처음 순서', asy
   await loadSample(page)
   await page.goto('/#/lessons')
   await page.getByRole('list', { name: '그룹 수업' }).getByRole('link', { name: /우쿨렐레 초급반/ }).click()
+  // 처음에는 달력으로 보이고, '표'를 고르면 출석부 표
+  await page.getByRole('radiogroup', { name: '출석부 보기' }).getByRole('radio', { name: '표' }).check({ force: true })
   const table = page.getByRole('region', { name: /출석부/ })
   const cell = table.getByRole('button', { name: /^강도윤 .*: (체크 전|예정)$/ }).first()
   const name = (await cell.getAttribute('aria-label'))!.replace(/: .*$/, '')
@@ -158,4 +160,28 @@ test('그룹 출석부 표: 칸을 누르면 출석, 결석, 처음 순서', asy
   await expect(target).toHaveAccessibleName(/결석$/)
   await target.click()
   await expect(target).toHaveAccessibleName(/(체크 전|예정)$/)
+})
+
+test('그룹 출석부 달력: 날짜에는 숫자만, 누르면 그날 출석부 창에서 체크, 고른 보기는 기억함', async ({ page }) => {
+  await loadSample(page)
+  await page.goto('/#/lessons')
+  await page.getByRole('list', { name: '그룹 수업' }).getByRole('link', { name: /우쿨렐레 초급반/ }).click()
+  const views = page.getByRole('radiogroup', { name: '출석부 보기' })
+  await expect(views.getByRole('radio', { name: '달력' })).toBeChecked()
+  const calendar = page.getByRole('group', { name: /우쿨렐레 초급반 \d+월 출결/ })
+  // 지난 수업 중 출결을 다 적은 날은 '출석/전체' 숫자 (학생 4명)
+  await expect(calendar.getByRole('button', { name: /출석부 열기, 출석/ }).first()).toHaveText(/^\d\/4$/)
+  // 출결을 안 적은 날을 눌러 창에서 모두 출석
+  const day = calendar.getByRole('button', { name: /출석부 열기, 체크 전/ }).first()
+  const label = (await day.getAttribute('aria-label'))!.replace(/ 출석부 열기.*$/, '')
+  await day.click()
+  const sheet = page.getByRole('dialog', { name: '수업 출석부' })
+  await sheet.getByRole('button', { name: '모두 출석' }).click()
+  await sheet.getByRole('button', { name: '창 닫기' }).click()
+  await expect(calendar.locator(`button[aria-label^="${label} "]`)).toHaveText('4/4')
+  // 표로 바꾸면 새로 고쳐도 표
+  await views.getByRole('radio', { name: '표' }).check({ force: true })
+  await page.reload()
+  await expect(page.getByRole('region', { name: /출석부/ })).toBeVisible()
+  await expect(views.getByRole('radio', { name: '표' })).toBeChecked()
 })

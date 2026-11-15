@@ -5,6 +5,7 @@ import DateField from '../../components/DateField'
 import { FeeFields, feeDraftErrors, parseBirthYear, type FeeDraft } from '../../components/FormParts'
 import { PlusIcon, TrashIcon } from '../../components/icons'
 import PageHeader from '../../components/PageHeader'
+import ScheduleConflicts, { conflictConfirmText, useSlotConflicts } from '../../components/ScheduleConflicts'
 import WeekdaySlotsEditor from '../../components/WeekdaySlotsEditor'
 import { latestSlots, useClasses, type QuickStudent } from '../../data/classes'
 import { nextUnusedColor } from '../../data/colors'
@@ -76,6 +77,9 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
   const rowError = newRows.some((row) => row.birthYearText && !parseBirthYear(row.birthYearText)) ? '출생 연도는 네 자리로 적어 주세요 (예: 2015)' : ''
   const errors = [nameError, slotsError(slots), feeDraftErrors(fee), endError, rowError].filter(Boolean)
   const scheduleChanged = !!cls && !sameSlots(original, slots)
+  // 겹치는지 볼 첫날: 바뀐 일정이면 바뀌는 날, 아니면 시작일. 지난 날은 보지 않습니다.
+  const checkFrom = [scheduleChanged ? scheduleFrom : startedOn, todayStr].sort()[1]
+  const conflicts = useSlotConflicts(slots, checkFrom, cls?.id)
   const activeStudents = students.filter((student) => studentStatus(student, todayStr) !== 'left')
 
   function updateRow(key: string, patch: Partial<NewStudentRow>) {
@@ -86,6 +90,8 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
     event.preventDefault()
     setSubmitted(true)
     if (errors.length > 0) return
+    const ask = conflictConfirmText(conflicts)
+    if (ask && !window.confirm(ask)) return
     setBusy(true)
     try {
       const quick: QuickStudent[] = newRows
@@ -159,6 +165,7 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
           <h2 className="section-title">요일과 시간</h2>
           <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} duration={settings.lessonMinutes} />
           {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
+          <ScheduleConflicts conflicts={conflicts} />
           {scheduleChanged && (
             <div className="field">
               <label className="field-label" htmlFor="group-schedule-from">바뀐 일정은 언제부터인가요?</label>

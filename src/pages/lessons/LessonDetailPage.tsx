@@ -2,12 +2,16 @@ import { useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router'
 import Avatar from '../../components/Avatar'
 import EnrollSheet, { EnrollmentSheet } from '../../components/EnrollSheet'
+import GroupCalendar from '../../components/GroupCalendar'
 import { BackIcon, ChevronRightIcon, PencilIcon, PlusIcon } from '../../components/icons'
 import LessonNotes from '../../components/LessonNotes'
+import LessonSheet, { type LessonRef } from '../../components/LessonSheet'
+import MakeupSheet from '../../components/MakeupSheet'
 import PageHeader from '../../components/PageHeader'
 import { studentPath } from '../../components/paths'
 import PaymentSheet, { type PaymentTarget } from '../../components/PaymentSheet'
 import RollTable, { RollLegend } from '../../components/RollTable'
+import Segmented from '../../components/Segmented'
 import { latestSlots, soloStudentId } from '../../data/classes'
 import { useData } from '../../data/DataProvider'
 import { BILLING_LABELS, describeFee, describeSlots, perSessionText } from '../../data/rules'
@@ -36,6 +40,20 @@ export default function LessonDetailPage() {
   return <GroupDetail key={cls.id} classId={cls.id} />
 }
 
+/** 그룹 출석부를 보는 방법: 달력(날짜마다 숫자, 누르면 그날 출석부) 또는 표(학생 × 날짜) */
+type RollView = 'calendar' | 'table'
+
+const ROLL_VIEW_KEY = 'class-note:roll-view'
+
+/** 마지막에 고른 출석부 보기. 처음에는 1:1 레슨과 같은 달력 */
+function savedRollView(): RollView {
+  try {
+    return localStorage.getItem(ROLL_VIEW_KEY) === 'table' ? 'table' : 'calendar'
+  } catch {
+    return 'calendar'
+  }
+}
+
 /** 그룹 수업: 수업 정보, 학생과 남은 횟수, 한 달 출석부 */
 function GroupDetail({ classId }: { classId: string }) {
   const { data, index } = useData()
@@ -45,6 +63,18 @@ function GroupDetail({ classId }: { classId: string }) {
   const [enrolling, setEnrolling] = useState(false)
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null)
   const [payment, setPayment] = useState<PaymentTarget | null>(null)
+  const [view, setView] = useState<RollView>(savedRollView)
+  const [sheetLesson, setSheetLesson] = useState<LessonRef | null>(null)
+  const [makeupIds, setMakeupIds] = useState<string[] | null>(null)
+
+  function changeView(next: RollView) {
+    setView(next)
+    try {
+      localStorage.setItem(ROLL_VIEW_KEY, next)
+    } catch {
+      // 기억하지 못해도 이번에는 고른 대로 보입니다.
+    }
+  }
 
   const members = useMemo(() => currentMembers(index, classId, todayStr), [index, classId, todayStr])
   // 이 수업을 그만둔 학생
@@ -112,6 +142,16 @@ function GroupDetail({ classId }: { classId: string }) {
           <div className="card">
             <div className="card-head">
               <h2 className="card-title">출석부</h2>
+              <Segmented<RollView>
+                label="출석부 보기"
+                name="roll-view"
+                value={view}
+                onChange={changeView}
+                options={[
+                  { value: 'calendar', label: '달력' },
+                  { value: 'table', label: '표' },
+                ]}
+              />
               <div className="cal-toolbar compact">
                 <button type="button" className="icon-btn" onClick={() => setMonth(addMonths(month, -1))} aria-label="이전 달">
                   <BackIcon />
@@ -122,8 +162,17 @@ function GroupDetail({ classId }: { classId: string }) {
                 </button>
               </div>
             </div>
-            <RollTable cls={cls} month={month} />
-            <RollLegend />
+            {view === 'calendar' ? (
+              <>
+                <GroupCalendar cls={cls} month={month} onOpen={(lesson) => setSheetLesson({ date: lesson.date, key: lesson.key })} />
+                <p className="muted">날짜를 누르면 그날 출석부가 열려요. 숫자는 출석한 학생 / 전체 학생이에요</p>
+              </>
+            ) : (
+              <>
+                <RollTable cls={cls} month={month} />
+                <RollLegend />
+              </>
+            )}
           </div>
           <LessonNotes classId={cls.id} />
         </div>
@@ -209,6 +258,8 @@ function GroupDetail({ classId }: { classId: string }) {
       <EnrollSheet target={enrolling ? { classId: cls.id } : null} onClose={() => setEnrolling(false)} />
       <EnrollmentSheet enrollment={data.enrollments.find((item) => item.id === enrollmentId) ?? null} onClose={() => setEnrollmentId(null)} />
       <PaymentSheet target={payment} onClose={() => setPayment(null)} />
+      <LessonSheet target={sheetLesson} onClose={() => setSheetLesson(null)} onOpenMakeup={setMakeupIds} />
+      <MakeupSheet ids={makeupIds} onClose={() => setMakeupIds(null)} />
     </section>
   )
 }

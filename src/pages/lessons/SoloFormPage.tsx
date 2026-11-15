@@ -3,6 +3,7 @@ import { useNavigate, useParams } from 'react-router'
 import DateField from '../../components/DateField'
 import { FeeFields, StudentFieldsEditor, feeDraftErrors, studentDraftErrors, studentDraftOf, studentFieldsOf, type FeeDraft, type StudentDraft } from '../../components/FormParts'
 import PageHeader from '../../components/PageHeader'
+import ScheduleConflicts, { conflictConfirmText, useSlotConflicts } from '../../components/ScheduleConflicts'
 import WeekdaySlotsEditor from '../../components/WeekdaySlotsEditor'
 import { latestSlots, soloStudentId, useClasses } from '../../data/classes'
 import { nextUnusedColor } from '../../data/colors'
@@ -69,11 +70,16 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
   const studentErrors = studentDraftErrors(draft)
   const errors = [studentErrors.name, studentErrors.birthYear, slotsError(slots), feeDraftErrors(fee)].filter(Boolean)
   const scheduleChanged = !!cls && !sameSlots(original, slots)
+  // 겹치는지 볼 첫날: 바뀐 일정이면 바뀌는 날, 아니면 시작일. 지난 날은 보지 않습니다.
+  const checkFrom = [scheduleChanged ? scheduleFrom : startedOn, todayStr].sort()[1]
+  const conflicts = useSlotConflicts(slots, checkFrom, cls?.id)
 
   async function submit(event: FormEvent) {
     event.preventDefault()
     setSubmitted(true)
     if (errors.length > 0) return
+    const ask = conflictConfirmText(conflicts)
+    if (ask && !window.confirm(ask)) return
     setBusy(true)
     try {
       const saved = await saveSolo({
@@ -135,6 +141,7 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
             <span className="field-label">요일과 시간</span>
             <WeekdaySlotsEditor label="수업" slots={slots} onChange={setSlots} defaultStart={settings.lessonStart} duration={settings.lessonMinutes} />
             {submitted && slotsError(slots) && <p className="field-error" role="alert">{slotsError(slots)}</p>}
+            <ScheduleConflicts conflicts={conflicts} />
           </div>
           {scheduleChanged && (
             <div className="field">

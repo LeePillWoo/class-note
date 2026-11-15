@@ -1,5 +1,5 @@
 import { expect, test } from '@playwright/test'
-import { acceptNextConfirm, addGroup, addSolo, expectNoHorizontalOverflow, shot } from './helpers'
+import { acceptNextConfirm, addGroup, addSolo, expectNoHorizontalOverflow, loadSample, shot } from './helpers'
 
 // 기능 테스트: 빈 앱에서 수업을 직접 만들어 봅니다.
 
@@ -156,4 +156,40 @@ test('화면 크기가 바뀌어도 적던 내용과 보던 화면이 그대로'
   await expect(page.getByLabel('출생 연도')).toHaveValue('2012')
   await page.setViewportSize({ width: 360, height: 780 })
   await expect(page.getByLabel('이름', { exact: true })).toHaveValue('돌리는 폰')
+})
+
+test('일정 겹침: 다른 수업과 시간이 겹치면 바로 알려주고, 저장할 때 한 번 더 물어봄', async ({ page }, testInfo) => {
+  await loadSample(page)
+  await page.goto('/#/lessons/new/solo')
+  await page.getByLabel('이름', { exact: true }).fill('겹침학생')
+  // 월요일 16:30 → 우쿨렐레 초급반(월 16:00~16:50)과 겹침
+  await page.getByRole('group', { name: '수업 요일' }).getByRole('button', { name: '월', exact: true }).click()
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:30')
+  const warning = page.getByRole('list', { name: '겹치는 수업' })
+  await expect(warning).toHaveText(/월 16:00~16:50 우쿨렐레 초급반/)
+  await expectNoHorizontalOverflow(page)
+  await shot(page, testInfo, 'crud-2-conflict')
+
+  // 저장할 때 물어보고, 취소하면 그대로 남음
+  page.once('dialog', (dialog) => {
+    expect(dialog.message()).toContain('월 16:00~16:50 우쿨렐레 초급반')
+    void dialog.dismiss()
+  })
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('heading', { name: '1:1 레슨 등록', level: 1 })).toBeVisible()
+
+  // 끝난 뒤(16:50)로 옮기면 겹치지 않음
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:50')
+  await expect(warning).toHaveCount(0)
+
+  // 다시 겹치게 하고 '확인'을 누르면 저장됨
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('16:00')
+  acceptNextConfirm(page)
+  await page.getByRole('button', { name: '저장' }).click()
+  await expect(page.getByRole('heading', { name: '겹침학생', level: 1 })).toBeVisible()
+
+  // 고칠 때는 자기 자신과는 겹치지 않지만, 다른 수업과 겹치는 것은 계속 보임
+  await page.getByRole('link', { name: '고치기' }).click()
+  await expect(page.getByRole('list', { name: '겹치는 수업' })).toHaveText(/우쿨렐레 초급반/)
+  await expect(page.getByRole('list', { name: '겹치는 수업' })).not.toHaveText(/겹침학생/)
 })

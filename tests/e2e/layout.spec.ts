@@ -15,6 +15,8 @@ test('처음 화면: 큰 그림과 시작 안내', async ({ page }, testInfo) =>
 })
 
 test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 화면 크기에 맞음', async ({ page }, testInfo) => {
+  // 모든 화면을 차례로 도는 긴 테스트라, 여러 테스트가 함께 돌 때도 끝나도록 넉넉히
+  test.setTimeout(150_000)
   await loadSample(page)
   const rail = expectsRail(page)
   const twoPanes = TWO_PANES.includes(testInfo.project.name)
@@ -70,13 +72,18 @@ test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 �
     expect(list.width).toBeLessThan(detail.width * 0.6)
   }
 
-  // 그룹 수업: 명단과 출석부 표
+  // 그룹 수업: 명단과 출석부 (달력, 표)
   await page.goto('/#/lessons')
   await groups.getByRole('link', { name: /우쿨렐레 초급반/ }).click()
   await expect(page.getByRole('heading', { name: '우쿨렐레 초급반', level: 1 })).toBeVisible()
-  await expect(page.getByRole('region', { name: /출석부/ })).toBeVisible()
+  await expect(page.getByRole('group', { name: /우쿨렐레 초급반 \d+월 출결/ })).toBeVisible()
   await expectNoHorizontalOverflow(page)
   await shot(page, testInfo, '05-group-detail-full', { fullPage: true })
+  await page.getByRole('radiogroup', { name: '출석부 보기' }).getByRole('radio', { name: '표' }).check({ force: true })
+  await expect(page.getByRole('region', { name: /출석부/ })).toBeVisible()
+  await expectNoHorizontalOverflow(page)
+  await shot(page, testInfo, '05-group-detail-table')
+  await page.getByRole('radiogroup', { name: '출석부 보기' }).getByRole('radio', { name: '달력' }).check({ force: true })
 
   // 입력 화면
   await page.goto('/#/lessons/new/solo')
