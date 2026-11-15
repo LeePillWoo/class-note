@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- viewport-fit=cover: 노치와 둥근 모서리까지 화면을 쓰고, 여백은 CSS의 safe-area로 맞춥니다. -->
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <!-- 기기가 어두운 모드여도 항상 밝은 화면으로 보여줍니다. 브라우저가 색을 강제로 어둡게 바꾸지 않게 합니다. -->
+    <meta name="color-scheme" content="only light" />
+    <meta name="theme-color" content="#ffffff" />
+    <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png" />
+    <link rel="apple-touch-icon" href="./icon-192.png" />
+    <!-- 휴대폰 브라우저의 '홈 화면에 추가'로 앱처럼 쓸 수 있게 합니다. (주소창 없이 열림) -->
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <title>마녀의 출석부</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

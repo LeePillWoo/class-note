@@ -1,0 +1,1137 @@
+/*
+ * 마녀의 출석부에서 새로 만든 배치와 부품입니다.
+ * 색, 단추, 목록, 입력, 달력 같은 기본 부품은 index.css(학원노트에서 가져와 색만 바꾼 것)에 있습니다.
+ */
+
+/* ===== 창(dialog) ===== */
+/* 창이 열려 있을 때 뒤의 화면이 같이 밀리지 않게 합니다. (지원하는 브라우저만. html/body에 overflow를 걸지 않습니다) */
+dialog:modal {
+  overscroll-behavior: contain;
+}
+
+dialog::backdrop {
+  overflow: hidden;
+  overscroll-behavior: contain;
+}
+
+/* 손가락으로 누르는 기기: 작은 단추도 44px 이상 */
+@media (pointer: coarse) {
+  .chip,
+  .btn-small {
+    min-height: 2.75rem;
+  }
+
+  .segment > span {
+    min-height: 2.75rem;
+  }
+}
+
+/* ===== 가로 화면: 왼쪽 메뉴 ===== */
+/*
+ * 메뉴 위치
+ * - 세로 화면(휴대폰, 폴드 접은 화면, 세로로 든 태블릿): 아래쪽 탭 메뉴
+ * - 가로 화면(휴대폰 가로, 폴드8 펼친 화면, PC): 왼쪽 메뉴
+ * 폴드7처럼 펼친 화면이 거의 정사각형이면 세로 화면으로 봅니다. 왼쪽 메뉴를 두면 두 칸으로 나눌 너비가 모자라서,
+ * 아래쪽 메뉴를 두고 화면을 반씩 나눕니다. 그래서 가로가 세로의 1.2배 이상일 때만 왼쪽 메뉴를 씁니다.
+ * 1024px 이상이면 비율과 상관없이 왼쪽 메뉴입니다. (창을 정사각형으로 줄인 PC)
+ */
+@media (min-width: 600px) and (min-aspect-ratio: 6/5), (min-width: 1024px) {
+  :root {
+    --rail-w: 5.25rem;
+    --tabbar-h: 0px;
+    --content-pad: 1.25rem;
+    --sticky-top: calc(1.25rem + env(safe-area-inset-top));
+  }
+
+  .shell {
+    display: flex;
+  }
+
+  .nav {
+    position: sticky;
+    top: 0;
+    right: auto;
+    bottom: auto;
+    left: auto;
+    flex-direction: column;
+    flex-shrink: 0;
+    align-items: center;
+    gap: 0.125rem;
+    width: calc(var(--rail-w) + env(safe-area-inset-left));
+    height: 100vh;
+    height: 100dvh;
+    padding: calc(0.875rem + env(safe-area-inset-top)) 0 calc(0.75rem + env(safe-area-inset-bottom)) env(safe-area-inset-left);
+    overflow-y: auto;
+  }
+
+  .nav-brand {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 0.625rem;
+    border-radius: 28%;
+  }
+
+  .nav-brand .logo {
+    width: 2.75rem;
+    height: 2.75rem;
+  }
+
+  .nav-item {
+    flex: 0 0 auto;
+    width: 100%;
+    min-height: 3.5rem;
+    font-size: 0.6875rem;
+  }
+
+  /* 설정은 메뉴 맨 아래 */
+  .nav-item.is-rail-only {
+    display: flex;
+    margin-top: auto;
+  }
+
+  .nav-icon {
+    width: 2.75rem;
+    height: 2rem;
+    border-radius: 0.75rem;
+  }
+
+  /* 로고와 설정이 왼쪽 메뉴에 있으므로 위쪽 막대는 없습니다. */
+  .topbar {
+    display: none;
+  }
+
+  .main {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .content {
+    padding: calc(var(--content-pad) + env(safe-area-inset-top)) calc(var(--content-pad) + env(safe-area-inset-right))
+      calc(1.5rem + env(safe-area-inset-bottom)) var(--content-pad);
+  }
+}
+
+/* PC: 여백을 넓게, 너무 넓어지지 않게 */
+@media (min-width: 1024px) {
+  :root {
+    --content-pad: 2rem;
+    --pane-gap: 1.75rem;
+    --sticky-top: 2rem;
+  }
+
+  .content {
+    max-width: 80rem;
+  }
+}
+
+/* 휴대폰 가로처럼 높이가 낮은 화면: 왼쪽 메뉴를 촘촘하게, 위에 붙는 것은 풀어 줍니다. */
+@media (max-height: 500px) {
+  :root {
+    --sticky-top: 0.75rem;
+  }
+
+  .nav-brand {
+    display: none;
+  }
+
+  .nav-item {
+    gap: 0;
+    min-height: 2.75rem;
+    padding: 0.125rem 0;
+  }
+
+  .nav-icon {
+    height: 1.5rem;
+  }
+}
+
+/* ===== 두 칸 배치 ===== */
+/*
+ * 넓은 화면(폴드 펼친 화면, 태블릿, PC)에서는 화면을 두 칸으로 나눕니다.
+ * 칸을 나눌지는 화면 전체가 아니라 그 자리의 너비(container query)로 정합니다.
+ *
+ * 첫 칸의 너비는 "두 칸 사이가 화면 한가운데에 오도록" 잡습니다.
+ * 폴드는 펼친 화면 가운데에 접힌 선이 있어서, 그 선이 칸 사이 빈자리에 오고 글자나 단추 위를 지나지 않습니다.
+ * PC(1024px 이상)에는 접힌 선이 없으니 목록 칸을 알맞은 너비로 고정합니다.
+ */
+:root {
+  --pane-first: clamp(
+    15rem,
+    calc(50vw - var(--rail-w) - var(--content-pad) - env(safe-area-inset-left, 0px) - var(--pane-gap) / 2),
+    60%
+  );
+  --duo-columns: var(--pane-first) minmax(0, 1fr);
+}
+
+@media (min-width: 1024px) {
+  :root {
+    --pane-first: 22rem;
+    --duo-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* 목록 + 자세히 (학생, 반) */
+.split {
+  container: split / inline-size;
+}
+
+.split-panes {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pane-gap);
+  align-items: start;
+}
+
+/* 한 칸일 때: 고른 것이 있으면 자세히만, 없으면 목록만 보여줍니다. 주소가 같아서 접었다 펴도 보던 것이 그대로입니다. */
+.split[data-detail='true'] .split-list,
+.split[data-detail='false'] .split-detail {
+  display: none;
+}
+
+@container split (min-width: 40rem) {
+  .split-panes {
+    grid-template-columns: var(--pane-first) minmax(0, 1fr);
+  }
+
+  .split[data-detail] .split-list,
+  .split[data-detail] .split-detail {
+    display: block;
+  }
+
+  /* 목록은 따로 밀리고, 자세히 칸을 내려 읽어도 자리에 남습니다. */
+  .split-list {
+    position: sticky;
+    top: var(--sticky-top);
+    max-height: calc(100dvh - var(--sticky-top) - var(--tabbar-h) - env(safe-area-inset-bottom) - 1rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+  }
+
+  /* 목록이 옆에 있으니 뒤로 단추는 필요 없습니다. */
+  .split-detail .back-btn {
+    display: none;
+  }
+
+  .split-detail .sticky-actions {
+    margin: 0;
+    padding: 0.75rem 0;
+  }
+}
+
+/* 두 칸으로 나란히 (홈, 출결, 보강, 납부) */
+.duo {
+  container: duo / inline-size;
+}
+
+.duo-cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--pane-gap);
+  align-items: start;
+}
+
+.duo-col {
+  min-width: 0;
+}
+
+@container duo (min-width: 40rem) {
+  .duo-cols {
+    grid-template-columns: var(--duo-columns);
+  }
+}
+
+/* ===== 홈의 큰 그림 ===== */
+/*
+ * 로고의 마녀 그림을 크게 보여주는 자리. 그림책의 그림틀처럼 검은 테두리를 두르고,
+ * 모자 끝이 틀 위로 조금 나오게 합니다. 좁은 화면에서는 왼쪽으로 흐르는 머리카락이 글자 뒤로 옅어집니다.
+ */
+.hero {
+  position: relative;
+  container: hero / inline-size;
+  margin: 1.75rem 0 1.5rem;
+  background: var(--color-surface);
+  border: 2px solid var(--color-ink);
+  border-radius: 1.5rem;
+  box-shadow: 0.25rem 0.3125rem 0 var(--color-hair-light);
+}
+
+.hero-text {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  align-content: center;
+  gap: 0.25rem;
+  width: 58%;
+  min-height: 9.5rem;
+  padding: 1rem 0 1rem 1.125rem;
+}
+
+.hero-date {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.hero-title {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1.3;
+}
+
+.hero-sub {
+  font-size: 0.9375rem;
+}
+
+.hero-art {
+  position: absolute;
+  right: 0.375rem;
+  bottom: 0;
+  width: auto;
+  max-width: 86%;
+  height: calc(100% + 1.5rem);
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+  user-select: none;
+  -webkit-mask-image: linear-gradient(to right, transparent 16%, #000 56%);
+  mask-image: linear-gradient(to right, transparent 16%, #000 56%);
+}
+
+/* 틀이 넓으면 머리카락까지 다 보여줍니다. */
+@container hero (min-width: 32rem) {
+  .hero-text {
+    width: 52%;
+    min-height: 11rem;
+    padding-left: 1.75rem;
+  }
+
+  .hero-title {
+    font-size: 1.875rem;
+  }
+
+  .hero-art {
+    right: 1rem;
+    max-width: 50%;
+    height: calc(100% + 2rem);
+    -webkit-mask-image: none;
+    mask-image: none;
+  }
+}
+
+/* ===== 수업 카드 (누르면 펼쳐서 출결을 적습니다) ===== */
+.lessons {
+  display: grid;
+  gap: 0.625rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.lesson {
+  overflow: hidden;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  /* 왼쪽 띠: 반 색 */
+  border-left: 0.3125rem solid var(--chip-solid, var(--color-border));
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+.lesson.is-open {
+  border-color: var(--color-ink);
+  border-left-color: var(--chip-solid, var(--color-ink));
+}
+
+.lesson-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 4rem;
+  padding: 0.625rem 0.5rem 0.625rem 0.75rem;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.lesson-head:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .lesson-head:hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+.lesson-time {
+  flex-shrink: 0;
+  min-width: 2.75rem;
+  font-size: 1.0625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+
+.lesson-time small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+
+.lesson-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.lesson-name {
+  display: block;
+  font-weight: 700;
+}
+
+.lesson-sub {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.lesson.is-cancelled .lesson-name {
+  color: var(--color-muted);
+  text-decoration: line-through;
+}
+
+.lesson-chevron {
+  flex-shrink: 0;
+  color: var(--color-muted);
+  transition: transform 0.15s;
+}
+
+.lesson.is-open .lesson-chevron {
+  transform: rotate(180deg);
+}
+
+.lesson-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+  padding: 0 0.75rem 0.875rem;
+}
+
+/* 출석부 줄 */
+.roll {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border-top: 1px solid var(--color-border);
+}
+
+.roll-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+  padding: 0.375rem 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.roll-name {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.125rem 0.375rem;
+  min-width: 0;
+  color: inherit;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.roll-buttons {
+  display: flex;
+  gap: 0.375rem;
+}
+
+/* 출석·결석 단추: 누르면 색이 찹니다. 한 번 더 누르면 '체크 전'으로 돌아갑니다. */
+.roll-btn {
+  min-width: 3.5rem;
+  min-height: 2.75rem;
+  padding: 0 0.625rem;
+  color: var(--color-muted);
+  font-weight: 600;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.roll-btn.is-present[aria-pressed='true'] {
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+}
+
+.roll-btn.is-absent[aria-pressed='true'] {
+  color: var(--bad-fg);
+  background: var(--bad-bg);
+  border-color: var(--bad-line);
+}
+
+.roll-btn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.roll-btn:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+/* 결석한 학생 아래: 사유와 보강 */
+.roll-extra {
+  display: flex;
+  flex-wrap: wrap;
+  grid-column: 1 / -1;
+  gap: 0.375rem 0.5rem;
+  align-items: center;
+  padding-bottom: 0.25rem;
+}
+
+.roll-extra .input {
+  flex: 1 1 9rem;
+  min-height: 2.5rem;
+  font-size: 0.9375rem;
+}
+
+.lesson-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 작은 꼬리표: 보강, 1:1, 쉬는 중 */
+.tag {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  padding: 0 0.4375rem;
+  color: var(--info-fg);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.375rem;
+  white-space: nowrap;
+  background: var(--info-bg);
+  border-radius: 0.375rem;
+}
+
+.tag.is-neutral {
+  color: var(--color-muted);
+  background: var(--color-bg);
+}
+
+.tag.is-warn {
+  color: var(--warn-fg);
+  background: var(--warn-bg);
+}
+
+.tag.is-bad {
+  color: var(--bad-fg);
+  background: var(--bad-bg);
+}
+
+/* ===== 학생, 반 목록 ===== */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+
+.search-field {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
+
+.filter-chips {
+  margin-bottom: 0.5rem;
+  padding: 0 0 0.25rem;
+}
+
+/* 이름 첫 글자를 넣은 동그라미 (학생 색) */
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--chip-fg, var(--color-ink));
+  font-family: var(--font-display);
+  font-size: 1.125rem;
+  background: var(--chip-bg, var(--color-bg));
+  border: 1px solid var(--chip-border, var(--color-border));
+  border-radius: 50%;
+}
+
+.avatar.is-large {
+  width: 3.5rem;
+  height: 3.5rem;
+  font-size: 1.5rem;
+}
+
+/* 반은 둥근 네모 */
+.avatar.is-class {
+  border-radius: 0.75rem;
+}
+
+.person-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 4rem;
+  padding: 0.5rem 0.5rem 0.5rem 0.75rem;
+  color: inherit;
+  text-decoration: none;
+}
+
+.person-row svg {
+  flex-shrink: 0;
+  color: var(--color-muted);
+}
+
+.person-row.active {
+  background: var(--color-primary-soft);
+}
+
+.person-row:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .person-row:not(.active):hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+.list-title {
+  font-weight: 600;
+}
+
+.list-title .tag {
+  margin-left: 0.25rem;
+  vertical-align: 0.0625rem;
+}
+
+/* 빈 화면 안내: 고양이 얼굴과 할 일 */
+.empty {
+  display: grid;
+  justify-items: center;
+  gap: 0.625rem;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.empty-art {
+  width: 4.5rem;
+  height: 4.5rem;
+  object-fit: cover;
+  background: #ffffff;
+  border: 2px solid var(--color-ink);
+  border-radius: 50%;
+}
+
+.empty-title {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+}
+
+.empty .btn {
+  margin-top: 0.25rem;
+}
+
+/* ===== 자세히 화면 (학생, 반) ===== */
+.detail-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.detail-head .page-title {
+  overflow-wrap: anywhere;
+}
+
+.detail-title {
+  flex: 1;
+  min-width: 0;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* 이름표와 값 (학교, 연락처 …) */
+.kv {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, max-content) minmax(0, 1fr);
+  gap: 0.5rem 0.875rem;
+  margin: 0;
+}
+
+.kv dt {
+  color: var(--color-muted);
+  font-size: 0.875rem;
+}
+
+.kv dd {
+  min-width: 0;
+  margin: 0;
+}
+
+.contact {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem 0.5rem;
+  align-items: center;
+}
+
+.contact-number {
+  font-variant-numeric: tabular-nums;
+}
+
+/* 전화와 문자 단추는 줄이 바뀌어도 함께 움직입니다. */
+.contact-actions {
+  display: inline-flex;
+  gap: 0.375rem;
+}
+
+/* 전화, 문자 단추 */
+.pill-link {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  padding: 0 0.625rem;
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-decoration: none;
+  background: var(--color-primary-soft);
+  border-radius: 999px;
+}
+
+@media (pointer: coarse) {
+  .pill-link {
+    min-height: 2.75rem;
+    padding: 0 0.875rem;
+  }
+}
+
+.card-head {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card .list {
+  margin-bottom: 0;
+  box-shadow: none;
+}
+
+/* 수강료 진행: 반(학생) 이름, 남은 횟수, 막대 */
+.tuition {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.125rem 0.75rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.625rem 0.75rem;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tuition:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+@media (hover: hover) {
+  .tuition:hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+.tuition-name {
+  min-width: 0;
+  font-weight: 600;
+}
+
+.tuition-count {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.tuition-count.is-behind {
+  color: var(--bad-fg);
+}
+
+.tuition .progress,
+.tuition .list-sub {
+  grid-column: 1 / -1;
+}
+
+.progress.is-behind > span {
+  background: var(--color-bow);
+}
+
+/* 이번 달 출결 숫자 */
+.counts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
+  gap: 0.5rem;
+  margin: 0;
+  text-align: center;
+}
+
+.counts > div {
+  padding: 0.5rem 0.25rem;
+  background: var(--color-surface-muted);
+  border-radius: 0.75rem;
+}
+
+.counts dt {
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+.counts dd {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.3;
+}
+
+/* ===== 출석부 표 (학생 × 날짜) ===== */
+/* 좁은 화면에서는 옆으로 밀어서 봅니다. 이름 칸은 왼쪽에 붙어 있습니다. */
+.roll-table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.roll-table-wrap:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.roll-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.roll-table th,
+.roll-table td {
+  padding: 0;
+  text-align: center;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.roll-table tbody tr:last-child th,
+.roll-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.roll-table thead th {
+  padding: 0.375rem 0.125rem;
+  font-weight: 600;
+  line-height: 1.2;
+  white-space: nowrap;
+  background: var(--color-surface-muted);
+}
+
+.roll-table thead small {
+  display: block;
+  color: var(--color-muted);
+  font-size: 0.6875rem;
+  font-weight: 400;
+}
+
+.roll-table thead th.is-today {
+  color: #ffffff;
+  background: var(--color-ink);
+}
+
+.roll-table thead th.is-today small {
+  color: #ffffff;
+}
+
+/* 이름 칸: 옆으로 밀어도 왼쪽에 붙어 있음 */
+.roll-table th[scope='row'],
+.roll-table thead th:first-child {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  min-width: 4.5rem;
+  max-width: 7rem;
+  padding: 0.375rem 0.625rem;
+  text-align: left;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
+}
+
+.roll-table thead th:first-child {
+  background: var(--color-surface-muted);
+}
+
+.roll-table .total {
+  min-width: 2.5rem;
+  padding: 0 0.375rem;
+  font-variant-numeric: tabular-nums;
+  border-left: 1px solid var(--color-border);
+}
+
+.mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-width: 2.375rem;
+  height: 2.75rem;
+  padding: 0;
+  color: var(--color-muted);
+  font-size: 1rem;
+  font-weight: 700;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.mark:disabled {
+  cursor: default;
+}
+
+.mark.is-present {
+  color: var(--ok-fg);
+  background: var(--ok-bg);
+}
+
+.mark.is-absent {
+  color: var(--bad-fg);
+  background: var(--bad-bg);
+}
+
+.mark.is-cancelled {
+  font-size: 0.75rem;
+  background: var(--color-surface-muted);
+}
+
+.mark.is-unchecked {
+  color: var(--warn-fg);
+}
+
+.mark:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 0.875rem;
+  color: var(--color-muted);
+  font-size: 0.8125rem;
+}
+
+/* ===== 입력 화면의 줄 ===== */
+/* 보호자: 관계, 전화번호, 지우기 */
+.guardian-row {
+  display: grid;
+  grid-template-columns: minmax(4.5rem, 1fr) minmax(0, 2fr) auto;
+  gap: 0.375rem;
+  align-items: center;
+}
+
+/* 고를 것이 여러 개인 목록 (반 고르기, 학생 고르기) */
+.pick-list {
+  display: grid;
+  gap: 0.25rem;
+  max-height: 16rem;
+  margin: 0;
+  padding: 0.25rem;
+  overflow-y: auto;
+  list-style: none;
+  border: 1px solid var(--color-border);
+  border-radius: 0.75rem;
+}
+
+.pick-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  min-height: 2.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+}
+
+.pick-row input {
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+  accent-color: var(--color-primary);
+}
+
+.pick-row:has(input:checked) {
+  background: var(--color-primary-soft);
+}
+
+.pick-row:has(input:focus-visible) {
+  outline: 2px solid var(--color-primary);
+  outline-offset: -2px;
+}
+
+/* 숫자 하나와 단위. 예: [8] 회 */
+.count-input {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.count-input .input {
+  width: 5.5rem;
+  text-align: right;
+}
+
+/* 고를 수 있는 그날의 수업 (보강을 같이 들을 수업) */
+.option-list {
+  display: grid;
+  gap: 0.375rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.option {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.375rem 0.625rem;
+  color: inherit;
+  text-align: left;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.625rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.option[aria-pressed='true'] {
+  background: var(--info-bg);
+  border-color: var(--info-fg);
+}
+
+.option:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.option-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ===== 넓은 화면의 창 ===== */
+@media (min-width: 600px) {
+  .sheet {
+    width: min(26rem, calc(100% - 2rem));
+    max-height: calc(100dvh - 2rem);
+  }
+}
+
+/* ===== 불러오는 화면 ===== */
+.status-art {
+  width: 6rem;
+  height: 6rem;
+  object-fit: cover;
+  background: #ffffff;
+  border: 2px solid var(--color-ink);
+  border-radius: 28%;
+}
+
+/* 날짜 옆의 '오늘' 표시: 모자 색 */
+.status-today {
+  margin-left: 0.5rem;
+  color: #ffffff;
+  font-family: system-ui, sans-serif;
+  background: var(--color-ink);
+}
+
+/* ===== 그 밖 ===== */
+.stack {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.75rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.spacer {
+  flex: 1;
+}
+
+.home-section .lessons {
+  margin-bottom: 0;
+}
+
+.btn-primary:active {
+  background: var(--color-primary-strong);
+}
+
+@media (hover: hover) {
+  .btn-primary:not(:disabled):hover {
+    background: var(--color-primary-strong);
+  }
+
+  .btn-secondary:not(:disabled):hover {
+    background: var(--color-surface-muted);
+  }
+}
+
+/* 움직임을 줄이도록 설정한 기기에서는 애니메이션을 끕니다. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
