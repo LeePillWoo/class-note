@@ -107,7 +107,7 @@ test('보강: 한 명은 오늘 끝내고, 휴강 보강은 두 명을 한 번�
 })
 
 test('납부: 밀린 수강료 받기와 지우기, 후납 레슨, 교재비 청구', async ({ page }) => {
-  await loadSample(page)
+  await loadSample(page, { payments: true })
   await page.goto('/#/payments')
   const dues = page.getByRole('list', { name: '받을 돈', exact: true })
   const paid = page.getByRole('list', { name: '받은 돈', exact: true })

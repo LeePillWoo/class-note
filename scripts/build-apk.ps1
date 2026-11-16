@@ -9,8 +9,8 @@ $env:GRADLE_USER_HOME = "$tools\gradle-home"
 $project = Split-Path $PSScriptRoot -Parent
 Set-Location $project
 
-Write-Output '[1/3] 웹 빌드'
-npm run build
+Write-Output '[1/3] 웹 빌드 (APK용)'
+npm run build -- --mode apk
 if ($LASTEXITCODE -ne 0) { throw '웹 빌드 실패' }
 
 Write-Output '[2/3] Capacitor 동기화 (dist → android)'

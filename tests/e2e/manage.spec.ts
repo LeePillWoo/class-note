@@ -161,7 +161,7 @@ test('프로필 사진: 끌어서 옮김', async ({ page }) => {
 
 test('안내 문구: 수강료 창에 학생 값으로 채워진 문구가 나오고 복사됨, 설정에는 안내 문구 메뉴가 없음', async ({ page, context }) => {
   await context.grantPermissions(['clipboard-read', 'clipboard-write'])
-  await loadSample(page)
+  await loadSample(page, { payments: true })
   await page.goto('/#/settings')
   await expect(page.getByRole('link', { name: /안내 문구/ })).toHaveCount(0)
 
@@ -178,7 +178,7 @@ test('안내 문구: 수강료 창에 학생 값으로 채워진 문구가 나�
 })
 
 test('납부: 달마다 받은 돈 막대를 누르면 그 달의 받은 돈을 봄', async ({ page }, testInfo) => {
-  await loadSample(page)
+  await loadSample(page, { payments: true })
   await page.goto('/#/payments')
   const bars = page.getByRole('list', { name: '달마다 받은 돈' })
   await expect(bars.getByRole('button')).toHaveCount(6)

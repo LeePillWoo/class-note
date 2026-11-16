@@ -16,6 +16,7 @@ import { latestSlots, soloStudentId } from '../../data/classes'
 import { useData } from '../../data/DataProvider'
 import { BILLING_LABELS, describeFee, describeSlots, perSessionText } from '../../data/rules'
 import { compareStudents, currentMembers, studentStatus } from '../../data/schedule'
+import { usePaymentsEnabled } from '../../data/settings'
 import { describeBirthYear } from '../../data/students'
 import { describeRemaining, dueNowOn, isBehind, tuitionState } from '../../data/tuition'
 import { WEEKDAY_NAMES, addMonths, dateParts, formatDate, startOfMonth, today } from '../../utils/date'
@@ -63,6 +64,7 @@ function GroupDetail({ classId }: { classId: string }) {
   const [enrolling, setEnrolling] = useState(false)
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null)
   const [payment, setPayment] = useState<PaymentTarget | null>(null)
+  const paymentsEnabled = usePaymentsEnabled()
   const [view, setView] = useState<RollView>(savedRollView)
   const [sheetLesson, setSheetLesson] = useState<LessonRef | null>(null)
   const [makeupIds, setMakeupIds] = useState<string[] | null>(null)
@@ -122,21 +124,25 @@ function GroupDetail({ classId }: { classId: string }) {
                 {cls.endedOn && ` · ${formatDate(cls.endedOn)}까지 수업`}
               </p>
             </div>
-            <dl className="kv profile-kv">
-              <dt>수강료</dt>
-              <dd>
-                {describeFee(cls.fee)}
-                {per && <span className="muted"> · {per}</span>}
-              </dd>
-              <dt>받는 때</dt>
-              <dd>{BILLING_LABELS[cls.billing]}</dd>
+            {(paymentsEnabled || cls.memo) && <dl className="kv profile-kv">
+              {paymentsEnabled && (
+                <>
+                  <dt>수강료</dt>
+                  <dd>
+                    {describeFee(cls.fee)}
+                    {per && <span className="muted"> · {per}</span>}
+                  </dd>
+                  <dt>받는 때</dt>
+                  <dd>{BILLING_LABELS[cls.billing]}</dd>
+                </>
+              )}
               {cls.memo && (
                 <>
                   <dt>메모</dt>
                   <dd className="memo">{cls.memo}</dd>
                 </>
               )}
-            </dl>
+            </dl>}
           </div>
 
           <div className="card">
@@ -191,7 +197,7 @@ function GroupDetail({ classId }: { classId: string }) {
             ) : (
               <ul className="list flush" aria-label="이 수업 학생">
                 {members.map(({ student, enrollment }) => {
-                  const state = tuitionState(index, student.id, cls.id, todayStr)
+                  const state = paymentsEnabled ? tuitionState(index, student.id, cls.id, todayStr) : null
                   const paused = studentStatus(student, todayStr) === 'paused'
                   return (
                     <li key={student.id} className="member-row">
@@ -224,7 +230,7 @@ function GroupDetail({ classId }: { classId: string }) {
                           </button>
                         )}
                         <button type="button" className="btn btn-ghost btn-small" onClick={() => setEnrollmentId(enrollment.id)}>
-                          수강료·수강 설정
+                          {paymentsEnabled ? '수강료·수강 설정' : '수강 설정'}
                         </button>
                       </div>
                     </li>

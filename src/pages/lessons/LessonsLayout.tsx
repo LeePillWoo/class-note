@@ -8,6 +8,7 @@ import { latestSlots } from '../../data/classes'
 import { useData } from '../../data/DataProvider'
 import { describeSlots } from '../../data/rules'
 import { compareStudents, currentMembers, isCurrentEnrollment, studentStatus } from '../../data/schedule'
+import { usePaymentsEnabled } from '../../data/settings'
 import { describeBirthYear } from '../../data/students'
 import { namesSummary } from '../../data/lessons'
 import { describeRemaining, isBehind, tuitionState } from '../../data/tuition'
@@ -217,7 +218,7 @@ function SoloLink({ row }: { row: SoloRow }) {
   const { index } = useData()
   const todayStr = today()
   const { cls, student } = row
-  const state = tuitionState(index, student.id, cls.id, todayStr)
+  const state = usePaymentsEnabled() ? tuitionState(index, student.id, cls.id, todayStr) : null
   const status = studentStatus(student, todayStr)
   return (
     <NavLink to={`/lessons/${cls.id}`} className="person-row">

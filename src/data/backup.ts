@@ -2,6 +2,7 @@ import { today, type DateStr } from '../utils/date'
 import { normalizeDatabase } from './settings'
 import { allPutChanges, allRemovalChanges, collectionNames, emptyDatabase } from './storage'
 import type { BaseRecord, Change, CollectionName, Database } from './types'
+import { validateRecord } from './validate'
 
 export const BACKUP_APP = 'class-note'
 /** 백업 파일 형식 번호. 데이터 구조가 크게 바뀌면 올립니다. */
@@ -19,7 +20,12 @@ export interface BackupSummary {
   exportedAt: string
   counts: Record<CollectionName, number>
   total: number
+  /** 모양이 틀려서 버린 기록 수 */
+  skipped: number
 }
+
+/** 가져올 수 있는 백업 파일의 가장 큰 크기. 사진이 많아도 이보다 크지 않습니다. */
+export const MAX_BACKUP_BYTES = 20 * 1024 * 1024
 
 export function createBackup(data: Database, exportedAt = new Date().toISOString()): BackupFile {
   return { app: BACKUP_APP, version: BACKUP_VERSION, exportedAt, data }
@@ -38,8 +44,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /**
- * 백업 파일 글자를 읽어 검사합니다. 모르는 데이터 종류는 버리고, id가 없는 기록은 건너뜁니다.
- * 밖에서 들어오는 파일이라 믿지 않고 하나하나 확인합니다.
+ * 백업 파일 글자를 읽어 검사합니다. 모르는 데이터 종류는 버리고, 모양이 틀린 기록은 건너뜁니다. (validate.ts)
+ * 밖에서 들어오는 파일이라 믿지 않고 하나하나 확인합니다. 틀린 기록이 들어가 화면이 멈추는 일이 없게 합니다.
  */
 export function parseBackup(text: string): { backup: BackupFile; summary: BackupSummary } | { error: string } {
   let raw: unknown
@@ -59,18 +65,21 @@ export function parseBackup(text: string): { backup: BackupFile; summary: Backup
   const data = emptyDatabase()
   const counts = {} as Record<CollectionName, number>
   let total = 0
+  let skipped = 0
   for (const collection of collectionNames()) {
     const list = raw.data[collection]
     const records: BaseRecord[] = []
+    const seen = new Set<string>()
     if (Array.isArray(list)) {
       for (const item of list) {
-        if (!isRecord(item) || typeof item.id !== 'string' || !item.id) continue
-        records.push({
-          ...item,
-          id: item.id,
-          createdAt: typeof item.createdAt === 'string' ? item.createdAt : '',
-          updatedAt: typeof item.updatedAt === 'string' ? item.updatedAt : '',
-        } as BaseRecord)
+        const record = validateRecord(collection, item)
+        // 같은 id가 두 번 나오면 처음 것만 씁니다.
+        if (!record || seen.has(record.id)) {
+          skipped++
+          continue
+        }
+        seen.add(record.id)
+        records.push(record)
       }
     }
     ;(data[collection] as BaseRecord[]) = records
@@ -79,7 +88,7 @@ export function parseBackup(text: string): { backup: BackupFile; summary: Backup
   }
 
   const exportedAt = typeof raw.exportedAt === 'string' ? raw.exportedAt : ''
-  return { backup: { app: BACKUP_APP, version, exportedAt, data: normalizeDatabase(data) }, summary: { exportedAt, counts, total } }
+  return { backup: { app: BACKUP_APP, version, exportedAt, data: normalizeDatabase(data) }, summary: { exportedAt, counts, total, skipped } }
 }
 
 /** 덮어쓰기: 지금 것을 모두 지우고 백업으로 바꿈 / 합치기: 백업에만 있거나 백업이 더 최신인 기록만 넣음 */

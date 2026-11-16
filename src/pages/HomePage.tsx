@@ -11,6 +11,7 @@ import { useData } from '../data/DataProvider'
 import { dayLessons, uncheckedLessons, type LessonView } from '../data/lessons'
 import { isOpenState, makeupState, urgencyKey } from '../data/makeupRules'
 import { useSampleData } from '../data/sampleActions'
+import { usePaymentsEnabled } from '../data/settings'
 import { allTuitionStates, dueViews } from '../data/tuition'
 import { APP_NAME } from '../layout/AppShell'
 import { WEEKDAY_NAMES, addDays, dateParts, formatDate, today, weekdayOf, type DateStr } from '../utils/date'
@@ -48,7 +49,8 @@ export default function HomePage() {
     [data.makeups, index, todayStr],
   )
   // 받을 날이 지났거나 일주일 안에 받을 돈
-  const dues = useMemo(() => dueViews(index, allTuitionStates(index, todayStr), addDays(todayStr, 7), todayStr), [index, todayStr])
+  const paymentsEnabled = usePaymentsEnabled()
+  const dues = useMemo(() => (paymentsEnabled ? dueViews(index, allTuitionStates(index, todayStr), addDays(todayStr, 7), todayStr) : []), [index, todayStr, paymentsEnabled])
 
   const toggle = (key: string) => setOpenKey((current) => (current === key ? null : key))
   const cards = (lessons: LessonView[], showDate = false) => (
@@ -104,7 +106,7 @@ export default function HomePage() {
             )}
             {openMakeups.length > 5 && <Link to="/makeups" className="block-link">보강 모두 보기</Link>}
           </section>
-          <section className="block" aria-labelledby="due-heading">
+          {paymentsEnabled && <section className="block" aria-labelledby="due-heading">
             <h2 className="block-title" id="due-heading">
               받을 돈 {dues.length > 0 && <span className="count">{dues.length}</span>}
             </h2>
@@ -120,7 +122,7 @@ export default function HomePage() {
               </ul>
             )}
             {dues.length > 5 && <Link to="/payments" className="block-link">납부 모두 보기</Link>}
-          </section>
+          </section>}
         </aside>
       </div>
       <LessonSheet target={sheetLesson} onClose={() => setSheetLesson(null)} onOpenMakeup={setMakeupIds} />

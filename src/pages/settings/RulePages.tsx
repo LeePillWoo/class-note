@@ -15,54 +15,12 @@ export function SavedNote() {
 
 const STEP_LABELS: Record<TimeStep, string> = { 60: '정각', 30: '30분', 10: '10분' }
 
-/** 수업 기본값: 새 수업의 수강료 횟수, 받는 때, 먼저 고를 납부 방법, 시작 시각과 수업 시간 */
+/** 수업 기본값: 새 수업의 시각 단위, 시작 시각, 수업 시간 */
 export function LessonDefaultsPage() {
   const { settings, save } = useSettings()
-  const [countText, setCountText] = useState(String(settings.sessionCount))
   return (
     <section className="narrow">
       <PageHeader title="수업 기본값" subtitle="새 수업을 만들 때 먼저 채워지는 값이에요. 수업마다 바꿀 수 있어요" backTo="/settings" />
-      <div className="card form-section">
-        <h2 className="section-title">수강료</h2>
-        <div className="field">
-          <label className="field-label" htmlFor="rule-count">수강료 횟수</label>
-          <div className="input-with-unit narrow-input">
-            <input id="rule-count" className="input" inputMode="numeric" autoComplete="off" value={countText}
-              onChange={(event) => {
-                const text = event.target.value.replace(/[^\d]/g, '').slice(0, 2)
-                setCountText(text)
-                const count = Number(text)
-                if (count >= 1 && count <= 99) void save({ sessionCount: count })
-              }} />
-            <span className="unit">회</span>
-          </div>
-        </div>
-        <div className="field">
-          <span className="field-label">받는 때</span>
-          <Segmented<Billing>
-            label="수강료 받는 때"
-            name="rule-billing"
-            value={settings.billing}
-            onChange={(billing) => void save({ billing })}
-            options={[
-              { value: 'prepaid', label: BILLING_LABELS.prepaid },
-              { value: 'postpaid', label: BILLING_LABELS.postpaid },
-            ]}
-          />
-          <p className="muted">{BILLING_HINTS[settings.billing]}</p>
-        </div>
-        <div className="field">
-          <span className="field-label">납부 방법</span>
-          <Segmented<PaymentMethod>
-            label="먼저 고를 납부 방법"
-            name="rule-method"
-            value={settings.method}
-            onChange={(method) => void save({ method })}
-            options={(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((value) => ({ value, label: PAYMENT_METHOD_LABELS[value] }))}
-          />
-          <p className="muted">수강료를 받을 때 이 방법이 먼저 골라져 있어요</p>
-        </div>
-      </div>
       <div className="card form-section">
         <h2 className="section-title">수업 시간</h2>
         <div className="field">
@@ -103,6 +61,77 @@ export function LessonDefaultsPage() {
   )
 }
 
+/** 납부 관리: 납부 기능을 켜고 끄기, 켰을 때 새 수업의 수강료 횟수·받는 때·먼저 고를 납부 방법 */
+export function PaymentSettingsPage() {
+  const { settings, save } = useSettings()
+  const [countText, setCountText] = useState(String(settings.sessionCount))
+  const enabled = settings.paymentsEnabled
+  return (
+    <section className="narrow">
+      <PageHeader title="납부 관리" subtitle="처음에는 출결만 관리해요. 수강료와 납부도 함께 관리하려면 켜 주세요" backTo="/settings" />
+      <div className="card form-section">
+        <label className="switch-row">
+          <span className="pick-text">
+            <span className="pick-name">납부 기능 쓰기</span>
+            <span className="muted">
+              {enabled
+                ? '납부 메뉴, 홈의 받을 돈, 학생마다 수강료와 남은 횟수가 보여요'
+                : '꺼져 있어요. 켜면 납부 메뉴, 받을 돈, 수강료와 남은 횟수가 보여요'}
+            </span>
+          </span>
+          <input type="checkbox" role="switch" className="switch" checked={enabled} aria-label="납부 기능 쓰기"
+            onChange={(event) => void save({ paymentsEnabled: event.target.checked })} />
+        </label>
+        <p className="muted">꺼도 적어 둔 수강료와 납부 기록은 지워지지 않아요. 다시 켜면 그대로 보여요</p>
+      </div>
+      {enabled && (
+        <div className="card form-section">
+          <h2 className="section-title">새 수업의 수강료</h2>
+          <div className="field">
+            <label className="field-label" htmlFor="rule-count">수강료 횟수</label>
+            <div className="input-with-unit narrow-input">
+              <input id="rule-count" className="input" inputMode="numeric" autoComplete="off" value={countText}
+                onChange={(event) => {
+                  const text = event.target.value.replace(/[^\d]/g, '').slice(0, 2)
+                  setCountText(text)
+                  const count = Number(text)
+                  if (count >= 1 && count <= 99) void save({ sessionCount: count })
+                }} />
+              <span className="unit">회</span>
+            </div>
+          </div>
+          <div className="field">
+            <span className="field-label">받는 때</span>
+            <Segmented<Billing>
+              label="수강료 받는 때"
+              name="rule-billing"
+              value={settings.billing}
+              onChange={(billing) => void save({ billing })}
+              options={[
+                { value: 'prepaid', label: BILLING_LABELS.prepaid },
+                { value: 'postpaid', label: BILLING_LABELS.postpaid },
+              ]}
+            />
+            <p className="muted">{BILLING_HINTS[settings.billing]}</p>
+          </div>
+          <div className="field">
+            <span className="field-label">납부 방법</span>
+            <Segmented<PaymentMethod>
+              label="먼저 고를 납부 방법"
+              name="rule-method"
+              value={settings.method}
+              onChange={(method) => void save({ method })}
+              options={(Object.keys(PAYMENT_METHOD_LABELS) as PaymentMethod[]).map((value) => ({ value, label: PAYMENT_METHOD_LABELS[value] }))}
+            />
+            <p className="muted">수강료를 받을 때 이 방법이 먼저 골라져 있어요</p>
+          </div>
+        </div>
+      )}
+      <SavedNote />
+    </section>
+  )
+}
+
 const WINDOW_OPTIONS: { value: string; label: string; window: MakeupWindow }[] = [
   { value: 'none', label: '기한 없음', window: { type: 'none' } },
   { value: 'days:7', label: '빠진 날부터 7일 안', window: { type: 'days', days: 7 } },
@@ -125,7 +154,8 @@ export function AttendanceSettingsPage() {
   return (
     <section className="narrow">
       <PageHeader title="출결·보강" subtitle="모든 수업에 함께 적용돼요" backTo="/settings" />
-      <div className="card form-section">
+      {/* 결석한 수업을 회차로 셀지는 수강료 계산에만 쓰여서, 납부 기능을 켰을 때만 보여줍니다. */}
+      {settings.paymentsEnabled && <div className="card form-section">
         <fieldset className="field">
           <legend className="field-label">결석한 수업</legend>
           {COUNTING_ORDER.map((value) => (
@@ -138,7 +168,7 @@ export function AttendanceSettingsPage() {
             </label>
           ))}
         </fieldset>
-      </div>
+      </div>}
       <div className="card form-section">
         <fieldset className="field">
           <legend className="field-label">보강</legend>

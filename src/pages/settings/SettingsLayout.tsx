@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 import { NavLink, Outlet, useMatch } from 'react-router'
 import Empty from '../../components/Empty'
-import { AttendanceIcon, BackupIcon, ChevronRightIcon, DatabaseIcon, RosterIcon, SlidersIcon } from '../../components/icons'
+import { AttendanceIcon, BackupIcon, CardIcon, ChevronRightIcon, DatabaseIcon, RosterIcon, SlidersIcon } from '../../components/icons'
 import { useData } from '../../data/DataProvider'
 import { BILLING_LABELS } from '../../data/rules'
 import { studentStatus } from '../../data/schedule'
@@ -67,14 +67,20 @@ function SettingsMenu() {
     {
       to: '/settings/defaults',
       title: '수업 기본값',
-      sub: `${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]} · ${settings.lessonStart}부터 ${lengthLabel(settings.lessonMinutes)}${settings.timeStep === 60 ? ' · 정각' : ''}`,
+      sub: `${settings.lessonStart}부터 ${lengthLabel(settings.lessonMinutes)} · ${settings.timeStep === 60 ? '정각' : `${settings.timeStep}분 단위`}`,
       icon: <SlidersIcon />,
     },
     {
       to: '/settings/attendance',
       title: '출결·보강',
-      sub: `${COUNTING_SHORT[settings.absenceCounting]} · ${makeupTargets ? `${makeupTargets} 보강` : '보강 없음'} · ${window.type === 'none' ? '기한 없음' : '기한 있음'}`,
+      sub: [settings.paymentsEnabled && COUNTING_SHORT[settings.absenceCounting], makeupTargets ? `${makeupTargets} 보강` : '보강 없음', window.type === 'none' ? '기한 없음' : '기한 있음'].filter(Boolean).join(' · '),
       icon: <AttendanceIcon />,
+    },
+    {
+      to: '/settings/payments',
+      title: '납부 관리',
+      sub: settings.paymentsEnabled ? `켜짐 · ${settings.sessionCount}회 · ${BILLING_LABELS[settings.billing]} · ${PAYMENT_METHOD_LABELS[settings.method]}` : '꺼짐 · 켜면 수강료와 납부도 함께 관리해요',
+      icon: <CardIcon />,
     },
   ]
   const people: MenuItem[] = [

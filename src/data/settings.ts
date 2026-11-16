@@ -11,6 +11,7 @@ export type SettingsValues = Omit<AppSettings, keyof BaseRecord>
  * - 결석한 수업은 회차로 세지 않고, 결석·휴강 모두 보강, 보강 기한은 없음
  * - 수강료는 선납, 납부 방법은 카드부터
  * - 수업 시각은 정각만 (1시간 단위)
+ * - 납부 기능은 꺼 둠 (출결 관리가 먼저. 필요하면 설정에서 켬)
  */
 export function defaultSettings(): SettingsValues {
   return {
@@ -22,6 +23,7 @@ export function defaultSettings(): SettingsValues {
     lessonMinutes: 60,
     lessonStart: '16:00',
     timeStep: 60,
+    paymentsEnabled: false,
   }
 }
 
@@ -73,4 +75,9 @@ export function useSettings() {
   }
 
   return { settings, save }
+}
+
+/** 납부 기능을 켰는지. 끄면 납부 메뉴, 받을 돈, 수강료·남은 횟수가 화면에서 숨습니다. (기록은 그대로 남음) */
+export function usePaymentsEnabled(): boolean {
+  return useSettings().settings.paymentsEnabled
 }

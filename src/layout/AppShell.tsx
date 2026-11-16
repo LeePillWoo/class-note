@@ -1,5 +1,6 @@
 import { Link, NavLink, Outlet } from 'react-router'
 import { useTodayTick } from '../hooks/useTodayTick'
+import { usePaymentsEnabled } from '../data/settings'
 import { navItems } from './navItems'
 
 export const APP_NAME = '마녀의 출석부'
@@ -12,6 +13,9 @@ export const APP_NAME = '마녀의 출석부'
 export default function AppShell() {
   // 자정이 지나거나 앱으로 돌아오면 다시 그려서 "오늘"이 맞게 보이게 합니다.
   useTodayTick()
+  // 납부 기능을 끄면 납부 메뉴를 숨깁니다.
+  const paymentsEnabled = usePaymentsEnabled()
+  const items = navItems.filter((item) => paymentsEnabled || item.to !== '/payments')
 
   return (
     <div className="shell">
@@ -20,7 +24,7 @@ export default function AppShell() {
           <Logo />
           <span className="nav-brand-name">{APP_NAME}</span>
         </Link>
-        {navItems.map((item) => (
+        {items.map((item) => (
           <NavLink key={item.to} to={item.to} end={item.to === '/'} className="nav-item">
             <span className="nav-icon">{item.icon}</span>
             <span className="nav-label">{item.label}</span>

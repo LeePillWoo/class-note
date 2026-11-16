@@ -19,6 +19,7 @@ export const CheckIcon = () => <Icon size={20}><path d="M5 12l5 5 9-10" /></Icon
 export const TrashIcon = () => <Icon size={20}><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></Icon>
 export const SearchIcon = () => <Icon size={20}><circle cx="11" cy="11" r="7" /><path d="M20 20l-3.5-3.5" /></Icon>
 export const PencilIcon = () => <Icon size={20}><path d="M4 20h4L19 9l-4-4L4 16zM13.5 6.5l4 4" /></Icon>
+export const CardIcon = () => <Icon size={20}><rect x="3" y="5" width="18" height="14" rx="2" /><path d="M3 10h18M7 15h4" /></Icon>
 export const CloseIcon = () => <Icon size={20}><path d="M6 6l12 12M18 6L6 18" /></Icon>
 
 // 아래 아이콘은 Codex와 함께 만든 묶음(design/codex/icons)에서 가져왔습니다. 굵기와 끝 모양은 위와 같습니다.

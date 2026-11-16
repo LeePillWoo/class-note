@@ -3,6 +3,7 @@ import { latestSlots, useEnrollments, type EnrollmentPatch, type QuickStudent } 
 import { newId } from '../data/id'
 import { describeBirthYear } from '../data/students'
 import { useData } from '../data/DataProvider'
+import { usePaymentsEnabled } from '../data/settings'
 import { BILLING_LABELS, describeFee, describeSlots, sortSlots } from '../data/rules'
 import { compareStudents, isCurrentEnrollment, studentStatus } from '../data/schedule'
 import type { Enrollment } from '../data/types'
@@ -37,6 +38,7 @@ interface NewRow {
 
 function EnrollEditor({ target, onDone }: { target: EnrollTarget; onDone(): void }) {
   const { data, index } = useData()
+  const paymentsEnabled = usePaymentsEnabled()
   const { enroll } = useEnrollments()
   const todayStr = today()
   const [picked, setPicked] = useState<string[]>([])
@@ -60,7 +62,7 @@ function EnrollEditor({ target, onDone }: { target: EnrollTarget; onDone(): void
     : [...data.classes]
         .filter((item) => item.kind === 'group' && (!item.endedOn || item.endedOn >= todayStr) && !isMember(item.id, target.studentId))
         .sort((a, b) => a.order - b.order)
-        .map((item) => ({ id: item.id, title: item.name, sub: `${describeSlots(latestSlots(item))} · ${describeFee(item.fee)}` }))
+        .map((item) => ({ id: item.id, title: item.name, sub: [describeSlots(latestSlots(item)), paymentsEnabled && describeFee(item.fee)].filter(Boolean).join(' · ') }))
 
   const quick: QuickStudent[] = newRows.filter((row) => row.name.trim()).map((row) => ({ name: row.name.trim(), birthYear: parseBirthYear(row.birthYearText) }))
   const badYear = newRows.some((row) => row.birthYearText && !parseBirthYear(row.birthYearText))
@@ -163,6 +165,7 @@ export function EnrollmentSheet({ enrollment, onClose }: EnrollmentSheetProps) {
 function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDone(): void }) {
   const { index } = useData()
   const { saveEnrollment, removeEnrollment } = useEnrollments()
+  const paymentsEnabled = usePaymentsEnabled()
   const cls = index.classes.get(enrollment.classId)
   const student = index.students.get(enrollment.studentId)
   const classDays = cls ? sortSlots(latestSlots(cls)).map((slot) => slot.weekday) : []
@@ -249,21 +252,25 @@ function EnrollmentEditor({ enrollment, onDone }: { enrollment: Enrollment; onDo
         </div>
       )}
 
-      <div className="field">
-        <label className="field-label" htmlFor="enrollment-credit">넣을 때 남아 있던 횟수</label>
-        <div className="count-input">
-          <input id="enrollment-credit" className="input" inputMode="numeric" autoComplete="off" value={creditText} aria-invalid={!validCredit}
-            onChange={(event) => setCreditText(event.target.value.replace(/[^\d]/g, '').slice(0, 3))} />
-          <span className="unit">회</span>
-        </div>
-        <p className="muted">전부터 다니던 학생이면, 이미 받은 수강료로 남은 수업 횟수를 적어 주세요. 처음 온 학생은 0이에요.</p>
-      </div>
+      {paymentsEnabled && (
+        <>
+          <div className="field">
+            <label className="field-label" htmlFor="enrollment-credit">넣을 때 남아 있던 횟수</label>
+            <div className="input-with-unit narrow-input">
+              <input id="enrollment-credit" className="input" inputMode="numeric" autoComplete="off" value={creditText} aria-invalid={!validCredit}
+                onChange={(event) => setCreditText(event.target.value.replace(/[^\d]/g, '').slice(0, 3))} />
+              <span className="unit">회</span>
+            </div>
+            <p className="muted">전부터 다니던 학생이면, 이미 받은 수강료로 남은 수업 횟수를 적어 주세요. 처음 온 학생은 0이에요.</p>
+          </div>
 
-      <div className="field">
-        <span className="field-label">이 학생의 수강료</span>
-        <p className="muted">수업 기본: {describeFee(classFee)} · {BILLING_LABELS[cls.billing]}. 학생마다 횟수, 금액, 받는 때를 다르게 정할 수 있어요</p>
-      </div>
-      <FeeFields draft={fee} onChange={setFee} submitted />
+          <div className="field">
+            <span className="field-label">이 학생의 수강료</span>
+            <p className="muted">수업 기본: {describeFee(classFee)} · {BILLING_LABELS[cls.billing]}. 학생마다 횟수, 금액, 받는 때를 다르게 정할 수 있어요</p>
+          </div>
+          <FeeFields draft={fee} onChange={setFee} submitted />
+        </>
+      )}
 
       <label className="check-row">
         <input type="checkbox" checked={ended} onChange={(event) => setEnded(event.target.checked)} />

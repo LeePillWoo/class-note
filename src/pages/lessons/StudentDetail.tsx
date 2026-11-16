@@ -16,6 +16,7 @@ import { useData } from '../../data/DataProvider'
 import { isOpenState, makeupState, urgencyKey } from '../../data/makeupRules'
 import { describeSlots } from '../../data/rules'
 import { STUDENT_STATUS_LABELS, currentClasses, studentStatus } from '../../data/schedule'
+import { usePaymentsEnabled } from '../../data/settings'
 import { describeBirthYear, openPause, type StatusAction } from '../../data/students'
 import { dueNowOn, dueViews, tuitionState } from '../../data/tuition'
 import { WEEKDAY_NAMES, addDays, formatDate, today } from '../../utils/date'
@@ -59,6 +60,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
   const [enrollTarget, setEnrollTarget] = useState<EnrollTarget | null>(null)
   const [enrollmentId, setEnrollmentId] = useState<string | null>(null)
   const [statusAction, setStatusAction] = useState<StatusAction | null>(null)
+  const paymentsEnabled = usePaymentsEnabled()
 
   const classes = useMemo(() => currentClasses(index, studentId, todayStr), [index, studentId, todayStr])
   const tuition = useMemo(() => {
@@ -150,7 +152,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
         <div className="detail-side">
           <div className="card">
             <div className="card-head">
-              <h2 className="card-title">수업과 수강료</h2>
+              <h2 className="card-title">{paymentsEnabled ? '수업과 수강료' : '듣는 수업'}</h2>
               <button type="button" className="btn btn-ghost btn-small" onClick={() => setEnrollTarget({ studentId: student.id })}>
                 <PlusIcon />
                 그룹에 넣기
@@ -161,7 +163,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
             ) : (
               <ul className="stack-list">
                 {classes.map(({ cls, enrollment }) => {
-                  const state = tuition.find((item) => item.classId === cls.id)
+                  const state = paymentsEnabled ? tuition.find((item) => item.classId === cls.id) : undefined
                   const days = enrollment.weekdays
                     ? `${enrollment.weekdays.map((day) => WEEKDAY_NAMES[day]).join('·')}요일만`
                     : describeSlots(latestSlots(cls))
@@ -206,7 +208,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
             </div>
           )}
 
-          <div className="card">
+          {paymentsEnabled && <div className="card">
             <div className="card-head">
               <h2 className="card-title">납부</h2>
               <button type="button" className="btn btn-ghost btn-small" onClick={() => setPayment({ type: 'extra', studentId: student.id })}>
@@ -234,7 +236,7 @@ export default function StudentDetail({ studentId, soloClassId }: { studentId: s
               </ul>
             )}
             {paid.length > 6 && <p className="muted">최근 6건만 보여요. 전체는 납부 화면에서 달마다 볼 수 있어요</p>}
-          </div>
+          </div>}
 
           <div className="status-actions">
             {student.leftOn === undefined && !pause && (

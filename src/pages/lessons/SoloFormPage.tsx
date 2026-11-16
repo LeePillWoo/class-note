@@ -45,6 +45,8 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
   const { saveSolo, removeClass } = useClasses()
   const { students, removeStudent } = useStudents()
   const { settings } = useSettings()
+  // 납부 기능을 끄면 수강료 칸을 숨깁니다. 값은 그대로(새 수업은 기본 횟수, 금액 미정) 저장합니다.
+  const paymentsEnabled = settings.paymentsEnabled
   const todayStr = today()
   const original = cls ? latestSlots(cls) : []
   const { index } = useData()
@@ -156,22 +158,24 @@ function SoloForm({ cls, student }: { cls?: ClassGroup; student?: Student }) {
           </div>
         </div>
 
-        <div className="card form-section">
-          <h2 className="section-title">수강료</h2>
-          <FeeFields draft={fee} onChange={setFee} submitted={submitted} />
-          {!cls && (
-            <div className="field">
-              <label className="field-label" htmlFor="solo-credit">이미 받은 수강료로 남은 횟수</label>
-              <div className="input-with-unit narrow-input">
-                <input id="solo-credit" className="input" inputMode="numeric" autoComplete="off" placeholder="0" value={creditText}
-                  onChange={(event) => setCreditText(event.target.value.replace(/[^\d]/g, '').slice(0, 3))} />
-                <span className="unit">회</span>
+        {paymentsEnabled && (
+          <div className="card form-section">
+            <h2 className="section-title">수강료</h2>
+            <FeeFields draft={fee} onChange={setFee} submitted={submitted} />
+            {!cls && (
+              <div className="field">
+                <label className="field-label" htmlFor="solo-credit">이미 받은 수강료로 남은 횟수</label>
+                <div className="input-with-unit narrow-input">
+                  <input id="solo-credit" className="input" inputMode="numeric" autoComplete="off" placeholder="0" value={creditText}
+                    onChange={(event) => setCreditText(event.target.value.replace(/[^\d]/g, '').slice(0, 3))} />
+                  <span className="unit">회</span>
+                </div>
+                <p className="muted">전부터 다니던 학생만 적어요. 이어서 셉니다</p>
               </div>
-              <p className="muted">전부터 다니던 학생만 적어요. 이어서 셉니다</p>
-            </div>
-          )}
-          {cls && enrollment && enrollment.startCredit > 0 && <p className="muted">등록할 때 남아 있던 횟수 {enrollment.startCredit}회 (수강 설정에서 고쳐요)</p>}
-        </div>
+            )}
+            {cls && enrollment && enrollment.startCredit > 0 && <p className="muted">등록할 때 남아 있던 횟수 {enrollment.startCredit}회 (수강 설정에서 고쳐요)</p>}
+          </div>
+        )}
 
         {error && <p className="field-error" role="alert">{error}</p>}
         <div className="sticky-actions form-actions">

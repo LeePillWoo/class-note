@@ -3,6 +3,7 @@ import PageHeader from '../../components/PageHeader'
 import Segmented from '../../components/Segmented'
 import {
   backupFileName,
+  MAX_BACKUP_BYTES,
   COLLECTION_LABELS,
   createBackup,
   parseBackup,
@@ -66,6 +67,10 @@ export default function BackupPage() {
     setImportError('')
     setParsed(null)
     if (!file) return
+    if (file.size > MAX_BACKUP_BYTES) {
+      setImportError('파일이 너무 커요. 마녀의 출석부 백업 파일(.json)인지 확인하세요.')
+      return
+    }
     const result = parseBackup(await file.text())
     if ('error' in result) {
       setImportError(result.error)
@@ -131,6 +136,9 @@ export default function BackupPage() {
                 </div>
               ))}
             </dl>
+            {parsed.summary.skipped > 0 && (
+              <p className="warnings" role="note">모양이 맞지 않는 기록 {parsed.summary.skipped}개는 빼고 가져와요. 다른 앱에서 고친 파일이면 원래 백업 파일을 써 주세요.</p>
+            )}
             <Segmented<RestoreMode>
               label="가져오는 방법"
               name="restore-mode"

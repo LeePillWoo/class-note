@@ -231,6 +231,8 @@ export interface AppSettings extends BaseRecord {
   lessonStart: string
   /** 시각을 고르는 단위(분): 60이면 정각만, 30이면 30분마다, 10이면 10분마다 */
   timeStep: TimeStep
+  /** 납부(수강료·남은 횟수·받을 돈) 기능을 쓰는지. 처음에는 꺼져 있고 출결만 관리합니다. */
+  paymentsEnabled: boolean
 }
 
 /** 시각 단위: 정각(1시간), 30분, 10분 */

@@ -1,9 +1,10 @@
 import { expect, test } from '@playwright/test'
-import { acceptNextConfirm, addGroup, addSolo, expectNoHorizontalOverflow, loadSample, shot } from './helpers'
+import { acceptNextConfirm, addGroup, addSolo, enablePayments, expectNoHorizontalOverflow, loadSample, shot } from './helpers'
 
 // 기능 테스트: 빈 앱에서 수업을 직접 만들어 봅니다.
 
 test('1:1 레슨: 학생과 수업을 한 번에 등록, 1회 금액 표시, 출생 연도, 고치기, 지우기', async ({ page }, testInfo) => {
+  await enablePayments(page)
   await page.goto('/#/lessons/new/solo')
   await page.getByLabel('수강료', { exact: true }).fill('120000')
   await page.getByLabel('횟수', { exact: true }).fill('4')
@@ -86,6 +87,7 @@ test('시각 고르기: 처음에는 정각만, 시작을 고르면 끝은 1시�
 })
 
 test('그룹 수업: 만들면서 새 학생을 적고, 나중에 학생 추가, 학생마다 수강료 규칙', async ({ page }) => {
+  await enablePayments(page)
   await addGroup(page, '기타 교실', { days: ['월', '수'], count: '8', amount: '160000', newStudents: ['김가온', '이나래'] })
   const members = page.getByRole('list', { name: '이 수업 학생' })
   await expect(members.getByRole('link')).toHaveCount(2)
@@ -135,30 +137,38 @@ test('입력 확인: 이름과 요일이 없으면 저장되지 않음', async (
 test('설정: 첫 화면은 메뉴, 눌러서 들어가 기본 규칙을 바꾸면 새 수업에 쓰임', async ({ page }) => {
   await page.goto('/#/settings')
   const menu = page.getByRole('list', { name: '기본 규칙' })
-  await expect(menu.getByRole('link')).toHaveCount(2)
+  await expect(menu.getByRole('link')).toHaveCount(3)
   // 메뉴에 지금 값이 요약되어 보임 (사용자와 정한 처음 값)
-  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('4회 · 선납 · 카드 · 16:00부터 1시간 · 정각')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('16:00부터 1시간 · 정각')
+  await expect(menu.getByRole('link', { name: /납부 관리/ })).toContainText('꺼짐')
   await expect(menu.getByRole('link', { name: /출결·보강/ })).toContainText('기한 없음')
 
   await menu.getByRole('link', { name: /출결·보강/ }).click()
   await expect(page.getByRole('heading', { name: '출결·보강', level: 1 })).toBeVisible()
-  await expect(page.getByRole('radio', { name: /결석은 회차로 세지 않음/ })).toBeChecked()
+  // 결석한 수업을 회차로 셀지는 수강료 계산에만 쓰여서 납부를 켰을 때만 나옴
+  await expect(page.getByRole('radio', { name: /결석은 회차로 세지 않음/ })).toHaveCount(0)
   await expect(page.getByLabel('보강 기한')).toHaveValue('none')
   await expect(page.getByRole('checkbox', { name: '결석하면 보강' })).toBeChecked()
 
   await page.goto('/#/settings')
-  await menu.getByRole('link', { name: /수업 기본값/ }).click()
+  // 납부 관리: 켜면 새 수업의 수강료 기본값이 나옴
+  await menu.getByRole('link', { name: /납부 관리/ }).click()
+  await expect(page.getByLabel('수강료 횟수')).toHaveCount(0)
+  await page.getByRole('switch', { name: '납부 기능 쓰기' }).click()
   await page.getByLabel('수강료 횟수').fill('8')
   await page.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
   // 저장이 끝나 화면에 반영된 뒤에 다른 화면으로
   await expect(page.getByRole('radio', { name: '후납' })).toBeChecked()
-  // 수업 시간도 같은 화면에서 정함. 처음 값은 1시간 수업
+  await page.goto('/#/settings')
+  await expect(menu.getByRole('link', { name: /납부 관리/ })).toContainText('켜짐 · 8회 · 후납 · 카드')
+  await menu.getByRole('link', { name: /수업 기본값/ }).click()
+  // 수업 시간. 처음 값은 1시간 수업
   await expect(page.getByLabel('수업 시간')).toHaveValue('60')
   await page.getByLabel('시작 시각').selectOption('15:00')
   await page.getByLabel('수업 시간').selectOption('120')
   await expect(page.getByLabel('수업 시간')).toHaveValue('120')
   await page.goto('/#/settings')
-  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('8회 · 후납 · 카드 · 15:00부터 2시간 · 정각')
+  await expect(menu.getByRole('link', { name: /수업 기본값/ })).toContainText('15:00부터 2시간 · 정각')
 
   await page.getByRole('navigation', { name: '주 메뉴' }).getByRole('link', { name: '수업' }).click()
   await page.getByRole('link', { name: '1:1 레슨' }).first().click()
@@ -202,8 +212,8 @@ test('일정 겹침: 다른 수업과 시간이 겹치면 바로 알려주고, �
   await page.getByRole('button', { name: '저장' }).click()
   await expect(page.getByRole('heading', { name: '1:1 레슨 등록', level: 1 })).toBeVisible()
 
-  // 끝난 뒤(17:00)로 옮기면 겹치지 않음 (맞닿기만 함)
-  await page.getByLabel('수업 월요일 시작 시각').selectOption('17:00')
+  // 비어 있는 오후 2시로 옮기면 겹치지 않음 (예시의 1:1 레슨은 오늘 요일 17:00이라 피함)
+  await page.getByLabel('수업 월요일 시작 시각').selectOption('14:00')
   await expect(warning).toHaveCount(0)
 
   // 다시 겹치게 하고 '확인'을 누르면 저장됨
@@ -216,4 +226,38 @@ test('일정 겹침: 다른 수업과 시간이 겹치면 바로 알려주고, �
   await page.getByRole('link', { name: '고치기' }).click()
   await expect(page.getByRole('list', { name: '겹치는 수업' })).toHaveText(/우쿨렐레 초급반/)
   await expect(page.getByRole('list', { name: '겹치는 수업' })).not.toHaveText(/겹침학생/)
+})
+
+test('납부 기능: 처음에는 꺼져 있어 출결만 보이고, 설정에서 켜면 납부가 함께 보임', async ({ page }, testInfo) => {
+  await loadSample(page)
+  const nav = page.getByRole('navigation', { name: '주 메뉴' })
+  // 꺼져 있을 때: 납부 메뉴, 홈의 받을 돈, 수업 화면의 수강료가 없음
+  await expect(nav.locator('.nav-item')).toHaveText(['홈', '수업', '보강', '설정'])
+  await expect(page.getByRole('heading', { name: '받을 돈' })).toHaveCount(0)
+  await page.goto('/#/payments')
+  await expect(page.getByRole('heading', { name: '오늘 수업' })).toBeVisible()
+  await page.goto('/#/lessons')
+  await page.getByRole('list', { name: '그룹 수업' }).getByRole('link', { name: /우쿨렐레 초급반/ }).click()
+  await expect(page.getByText('8회 16만 원')).toHaveCount(0)
+  await expect(page.getByRole('button', { name: '수강료 받기' })).toHaveCount(0)
+  await expect(page.locator('.member-row').first().getByRole('button', { name: '수강 설정' })).toBeVisible()
+  await page.goto('/#/lessons/new/solo')
+  await expect(page.getByLabel('횟수', { exact: true })).toHaveCount(0)
+  await expectNoHorizontalOverflow(page)
+  await page.goto('/#/settings/attendance')
+  await expect(page.getByRole('radio', { name: /결석은 회차로 세지 않음/ })).toHaveCount(0)
+
+  // 켜면 모두 보이고, 예시 데이터의 납부 기록도 그대로
+  await enablePayments(page)
+  await shot(page, testInfo, 'payments-toggle')
+  await expect(nav.locator('.nav-item')).toHaveText(['홈', '수업', '보강', '납부', '설정'])
+  await page.goto('/')
+  await expect(page.getByRole('heading', { name: /받을 돈/ })).toBeVisible()
+  await page.goto('/#/payments')
+  await expect(page.getByRole('heading', { name: '납부', level: 1 })).toBeVisible()
+  await expect(page.getByRole('list', { name: '받은 돈', exact: true }).getByRole('button').first()).toBeVisible()
+  await page.goto('/#/lessons/new/solo')
+  await expect(page.getByLabel('횟수', { exact: true })).toBeVisible()
+  await page.goto('/#/settings/attendance')
+  await expect(page.getByRole('radio', { name: /결석은 회차로 세지 않음/ })).toBeChecked()
 })

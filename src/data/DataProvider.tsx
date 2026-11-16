@@ -26,7 +26,8 @@ const DataContext = createContext<DataContextValue | null>(null)
 
 let storagePromise: Promise<DataStorage> | undefined
 
-function getStorage(): Promise<DataStorage> {
+/** 기기의 저장소 (한 번만 엽니다). 화면이 멈췄을 때 비상 화면에서도 씁니다. */
+export function getStorage(): Promise<DataStorage> {
   storagePromise ??= createIndexedDbStorage()
   return storagePromise
 }

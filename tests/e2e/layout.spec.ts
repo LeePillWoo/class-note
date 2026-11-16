@@ -17,7 +17,8 @@ test('처음 화면: 큰 그림과 시작 안내', async ({ page }, testInfo) =>
 test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 화면 크기에 맞음', async ({ page }, testInfo) => {
   // 모든 화면을 차례로 도는 긴 테스트라, 여러 테스트가 함께 돌 때도 끝나도록 넉넉히
   test.setTimeout(150_000)
-  await loadSample(page)
+  // 납부 화면까지 모두 보려고 납부 기능을 켭니다. (꺼진 화면은 crud.spec의 납부 기능 테스트에서)
+  await loadSample(page, { payments: true })
   const rail = expectsRail(page)
   const twoPanes = TWO_PANES.includes(testInfo.project.name)
   const nav = page.getByRole('navigation', { name: '주 메뉴' })
@@ -131,7 +132,7 @@ test('모든 화면이 옆으로 넘치지 않고, 메뉴 위치와 칸 수가 �
 })
 
 test('창(보강, 납부, 주간 일정의 수업)이 화면 안에 들어오고 넘치지 않음', async ({ page }, testInfo) => {
-  await loadSample(page)
+  await loadSample(page, { payments: true })
   const viewport = page.viewportSize()!
   const inside = async (name: string) => {
     const box = (await page.getByRole('dialog', { name, exact: true }).boundingBox())!

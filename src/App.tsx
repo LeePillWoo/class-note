@@ -11,7 +11,8 @@ import MakeupsPage from './pages/MakeupsPage'
 import PaymentsPage from './pages/PaymentsPage'
 import BackupPage from './pages/settings/BackupPage'
 import DataPage from './pages/settings/DataPage'
-import { AttendanceSettingsPage, LessonDefaultsPage } from './pages/settings/RulePages'
+import { AttendanceSettingsPage, LessonDefaultsPage, PaymentSettingsPage } from './pages/settings/RulePages'
+import { usePaymentsEnabled } from './data/settings'
 import StudentsPage from './pages/settings/StudentsPage'
 import SettingsLayout, { SettingsIndex } from './pages/settings/SettingsLayout'
 import { LessonEditPage } from './pages/lessons/LessonEditPage'
@@ -32,11 +33,12 @@ export default function App() {
           <Route path=":classId/edit" element={<LessonEditPage />} />
         </Route>
         <Route path="makeups" element={<MakeupsPage />} />
-        <Route path="payments" element={<PaymentsPage />} />
+        <Route path="payments" element={<PaymentsRoute />} />
         {/* 설정: 메뉴를 누르면 들어가는 화면들. 넓은 화면은 메뉴 + 화면 두 칸 */}
         <Route path="settings" element={<SettingsLayout />}>
           <Route index element={<SettingsIndex />} />
           <Route path="defaults" element={<LessonDefaultsPage />} />
+          <Route path="payments" element={<PaymentSettingsPage />} />
           <Route path="attendance" element={<AttendanceSettingsPage />} />
           <Route path="students" element={<StudentsPage />} />
           <Route path="backup" element={<BackupPage />} />
@@ -46,4 +48,9 @@ export default function App() {
       </Route>
     </Routes>
   )
+}
+
+/** 납부 화면은 납부 기능을 켰을 때만. 꺼져 있으면 홈으로 */
+function PaymentsRoute() {
+  return usePaymentsEnabled() ? <PaymentsPage /> : <Navigate to="/" replace />
 }

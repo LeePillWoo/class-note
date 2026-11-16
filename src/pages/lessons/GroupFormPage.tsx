@@ -49,6 +49,8 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
   const { classes, saveGroup, removeClass } = useClasses()
   const { students } = useStudents()
   const { settings } = useSettings()
+  // 납부 기능을 끄면 수강료 칸을 숨깁니다. 값은 그대로(새 수업은 기본 횟수, 금액 미정) 저장합니다.
+  const paymentsEnabled = settings.paymentsEnabled
   const todayStr = today()
   const original = cls ? latestSlots(cls) : []
 
@@ -179,10 +181,12 @@ function GroupForm({ cls }: { cls?: ClassGroup }) {
           </div>
         </div>
 
-        <div className="card form-section">
-          <h2 className="section-title">수강료</h2>
-          <FeeFields draft={fee} onChange={setFee} submitted={submitted} />
-        </div>
+        {paymentsEnabled && (
+          <div className="card form-section">
+            <h2 className="section-title">수강료</h2>
+            <FeeFields draft={fee} onChange={setFee} submitted={submitted} />
+          </div>
+        )}
 
         {!cls && (
           <div className="card form-section">

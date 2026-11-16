@@ -2,11 +2,24 @@ import { expect, type Page, type TestInfo } from '@playwright/test'
 import { mkdirSync } from 'node:fs'
 import { join } from 'node:path'
 
-/** 처음 화면에서 예시 데이터를 넣습니다. (지어낸 학생 8명, 반 4개) */
-export async function loadSample(page: Page) {
+/** 처음 화면에서 예시 데이터를 넣습니다. (지어낸 학생 8명, 반 4개) payments를 주면 납부 기능도 켭니다. */
+export async function loadSample(page: Page, options: { payments?: boolean } = {}) {
   await page.goto('/')
   await page.getByRole('button', { name: '예시 데이터 넣기' }).click()
   await expect(page.getByRole('heading', { name: '오늘 수업' })).toBeVisible()
+  if (options.payments) {
+    await enablePayments(page)
+    await page.goto('/')
+    await expect(page.getByRole('heading', { name: '오늘 수업' })).toBeVisible()
+  }
+}
+
+/** 설정 > 납부 관리에서 납부 기능을 켭니다. (처음에는 꺼져 있음) */
+export async function enablePayments(page: Page) {
+  await page.goto('/#/settings/payments')
+  const toggle = page.getByRole('switch', { name: '납부 기능 쓰기' })
+  await toggle.click()
+  await expect(toggle).toBeChecked()
 }
 
 /** 내용이 화면보다 넓어지지 않았는지 검사합니다. 넓어지면 휴대폰 브라우저가 화면 전체를 축소해서 보여줍니다. */
@@ -61,6 +74,8 @@ async function fillLesson(page: Page, options: LessonOptions) {
   if (options.end) await page.getByLabel(`수업 ${days[0]}요일 끝 시각`).selectOption(options.end)
   // 나머지 요일은 첫 요일의 시간을 그대로 따릅니다.
   await toggleWeekdays(page, '수업', days.slice(1))
+  // 수강료 칸은 납부 기능을 켰을 때만 있습니다.
+  if ((await page.getByLabel('횟수', { exact: true }).count()) === 0) return
   await page.getByLabel('횟수', { exact: true }).fill(options.count ?? '4')
   await page.getByLabel('수강료', { exact: true }).fill(options.amount ?? '100000')
   if (options.postpaid) await page.getByRole('radiogroup', { name: '수강료 받는 때' }).getByRole('radio', { name: '후납' }).click()
